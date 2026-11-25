@@ -10,5 +10,5 @@ self.SODAM_CFG = {
     appId: '1:720448762683:web:4a426fe07e4ca8c442bd1e'
   },
   vapidKey: 'BFLgj5Hch1Plj_THWrUunMY-Byl3Hep8Ya7kTjwJGqsEqeC3W_bysVUhX_MWj8gDpu6CDgKt-ta0fpAoLgo7Txk',
-  gasUrl: '' /* Apps Script 웹 앱 주소 */
+  gasUrl: 'https://script.google.com/macros/s/AKfycbz8joNT8nRrK3I88qQeibN7rjtiZcU0_IFriKlUQBQylxJ5co34Jh59UlYSWB2cro27/exec' /* Apps Script 웹 앱 주소 */
 };
