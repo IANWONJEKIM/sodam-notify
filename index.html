@@ -18,7 +18,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,
 h1{margin:6px 0 0;font-size:24px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
 .muted{color:var(--muted);font-size:14px;margin:0}
-input{font:inherit;font-size:16px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);color:var(--ink);width:100%}
+input,select{font:inherit;font-size:16px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);color:var(--ink);width:100%}
 button,.btn{font:inherit;font-weight:800;border:0;border-radius:12px;padding:14px;background:var(--accent);color:#fff;text-align:center;text-decoration:none;display:block;width:100%}
 .ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .st{font-weight:700}.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}
@@ -35,7 +35,7 @@ ol{margin:0;padding-left:20px;font-size:15px}
   </div>
   <div class="card" id="setup">
     <b>알림 받을 사람</b>
-    <input id="name" placeholder="워크툴에 나오는 내 이름" autocomplete="name">
+    <select id="name"><option value="">이름 불러오는 중…</option></select>
     <button id="on">알림 켜기</button>
     <p class="st" id="st"></p>
     <p class="muted">업무 지시, 관리자 알림, 재고 부족·유통기한 알림이 이 휴대폰으로 와요. 알림을 누르면 BASE CAMP가 열려요.</p>
@@ -52,7 +52,12 @@ $('go').href=BASE;
 var ios=/iphone|ipad|ipod/i.test(navigator.userAgent),standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
 if(ios&&!standalone)$('ios').hidden=false;
 var saved={};try{saved=JSON.parse(localStorage.getItem('sodam_notify')||'{}')}catch(e){}
-if(saved.name)$('name').value=saved.name;
+/* 이름은 알림 시트 '직원' 탭 목록에서 골라요 */
+fetch(C.gasUrl).then(function(r){return r.json()}).then(function(d){var L=(d&&d.names)||[],e=$('name');
+  if(saved.name&&L.indexOf(saved.name)<0)L.push(saved.name);
+  e.innerHTML='<option value="">내 이름을 골라 주세요</option>'+L.map(function(n){var o=document.createElement('option');o.value=o.textContent=n;if(n===saved.name)o.selected=true;return o.outerHTML}).join('');
+  if(!L.length)e.options[0].textContent='등록된 직원이 없어요 · 관리자에게 알려 주세요'
+}).catch(function(){$('name').options[0].textContent='이름을 불러오지 못했어요 · 앱을 다시 열어 주세요'});
 function st(t,cls){var e=$('st');e.textContent=t;e.className='st '+(cls||'')}
 if(saved.token&&Notification&&Notification.permission==='granted'){st('알림이 켜져 있어요 · '+saved.name,'ok');
   /* 등록을 마친 휴대폰은 아이콘을 누르면 바로 BASE CAMP로 가요 (?setup 으로 열면 이 화면에 머물러요) */
@@ -60,7 +65,7 @@ if(saved.token&&Notification&&Notification.permission==='granted'){st('알림이
 var msg=null;
 try{firebase.initializeApp(C.firebase);msg=firebase.messaging()}catch(e){st('알림 기능을 불러오지 못했어요.','bad')}
 $('on').onclick=function(){
-  var name=$('name').value.trim();if(!name){st('이름을 적어 주세요.','bad');return}
+  var name=$('name').value.trim();if(!name){st('이름을 골라 주세요.','bad');return}
   if(ios&&!standalone){st('먼저 홈 화면에 추가한 뒤 그 아이콘으로 열어 주세요.','bad');return}
   if(!('Notification' in window)||!msg){st('이 브라우저는 알림을 지원하지 않아요.','bad');return}
   st('알림 허용을 눌러 주세요…');
