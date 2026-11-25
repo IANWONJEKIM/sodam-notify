@@ -1,10 +1,10 @@
 {
-  "name": "소담 알림",
-  "short_name": "소담 알림",
+  "name": "소담상회",
+  "short_name": "소담상회",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#1F5F4A",
+  "background_color": "#F4F4F6",
   "theme_color": "#1F5F4A",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },

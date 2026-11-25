@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>소담 알림</title>
+<title>소담상회</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="소담 알림">
+<meta name="apple-mobile-web-app-title" content="소담상회">
 <meta name="theme-color" content="#1F5F4A">
 <style>
 :root{--bg:#F1F3F2;--card:#fff;--ink:#17201C;--muted:#5E6A64;--line:#D3D9D6;--accent:#1F5F4A;--ok:#1F7A4D;--bad:#B23B3B}
@@ -30,7 +30,7 @@ ol{margin:0;padding-left:20px;font-size:15px}
   <div><div class="muted">SODAM STORE</div><h1>소담 알림</h1></div>
   <div class="card" id="ios" hidden>
     <b>먼저 홈 화면에 추가해 주세요</b>
-    <ol><li>사파리 아래쪽 <b>공유 버튼(□↑)</b>을 눌러요</li><li><b>홈 화면에 추가</b>를 눌러요</li><li>홈 화면의 <b>소담 알림</b> 아이콘으로 다시 열어요</li></ol>
+    <ol><li>사파리 아래쪽 <b>공유 버튼(□↑)</b>을 눌러요</li><li><b>홈 화면에 추가</b>를 눌러요</li><li>홈 화면의 <b>소담상회</b> 아이콘으로 다시 열어요</li></ol>
     <p class="muted">아이폰은 홈 화면에 추가한 앱에서만 알림을 받을 수 있어요.</p>
   </div>
   <div class="card" id="setup">
@@ -71,7 +71,7 @@ $('on').onclick=function(){
     if(!token)throw new Error('notoken');
     return fetch(C.gasUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({name:name,token:token,ua:navigator.userAgent.slice(0,80)})}).then(function(){return token})}).then(function(token){
     localStorage.setItem('sodam_notify',JSON.stringify({name:name,token:token}));st('알림을 켰어요 · '+name+' · 1분 안에 시험 알림이 와요','ok')
-  }).catch(function(e){st(e&&e.message==='denied'?'알림이 꺼져 있어요. 휴대폰 설정에서 소담 알림의 알림을 허용해 주세요.':'알림을 켜지 못했어요. 잠시 후 다시 눌러 주세요.','bad')})};
+  }).catch(function(e){st(e&&e.message==='denied'?'알림이 꺼져 있어요. 휴대폰 설정에서 소담상회의 알림을 허용해 주세요.':'알림을 켜지 못했어요. 잠시 후 다시 눌러 주세요.','bad')})};
 /* 앱이 열려 있을 때 온 알림도 보여줘요 */
 if(msg)msg.onMessage(function(p){var n=p.notification||p.data||{};navigator.serviceWorker.getRegistration().then(function(r){if(r)r.showNotification(n.title||'소담 알림',{body:n.body||'',icon:'icon-192.png',data:{link:BASE}})})});
 })();
