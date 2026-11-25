@@ -27,7 +27,7 @@ ol{margin:0;padding-left:20px;font-size:15px}
 </head>
 <body>
 <div class="wrap">
-  <div><div class="muted">SODAM STORE</div><h1>소담 알림</h1></div>
+  <div><div class="muted">SODAM STORE</div><h1>소담상회</h1></div>
   <div class="card" id="ios" hidden>
     <b>먼저 홈 화면에 추가해 주세요</b>
     <ol><li>사파리 아래쪽 <b>공유 버튼(□↑)</b>을 눌러요</li><li><b>홈 화면에 추가</b>를 눌러요</li><li>홈 화면의 <b>소담상회</b> 아이콘으로 다시 열어요</li></ol>
@@ -73,7 +73,7 @@ $('on').onclick=function(){
     localStorage.setItem('sodam_notify',JSON.stringify({name:name,token:token}));st('알림을 켰어요 · '+name+' · 1분 안에 시험 알림이 와요','ok')
   }).catch(function(e){st(e&&e.message==='denied'?'알림이 꺼져 있어요. 휴대폰 설정에서 소담상회의 알림을 허용해 주세요.':'알림을 켜지 못했어요. 잠시 후 다시 눌러 주세요.','bad')})};
 /* 앱이 열려 있을 때 온 알림도 보여줘요 */
-if(msg)msg.onMessage(function(p){var n=p.notification||p.data||{};navigator.serviceWorker.getRegistration().then(function(r){if(r)r.showNotification(n.title||'소담 알림',{body:n.body||'',icon:'icon-192.png',data:{link:BASE}})})});
+if(msg)msg.onMessage(function(p){var n=p.notification||p.data||{};navigator.serviceWorker.getRegistration().then(function(r){if(r)r.showNotification(n.title||'소담상회',{body:n.body||'',icon:'icon-192.png',data:{link:BASE}})})});
 })();
 </script>
 </body>
