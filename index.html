@@ -12,7 +12,7 @@
 <style>
 :root{--bg:#F1F3F2;--card:#fff;--ink:#17201C;--muted:#5E6A64;--line:#D3D9D6;--accent:#1F5F4A;--ok:#1F7A4D;--bad:#B23B3B}
 @media (prefers-color-scheme:dark){:root{--bg:#0F1412;--card:#18201C;--ink:#E8EEEB;--muted:#9AA8A1;--line:#2E3934;--accent:#4FB08B;--ok:#5CC58E;--bad:#E07070}}
-*{box-sizing:border-box}
+*{box-sizing:border-box}[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;padding:max(20px,env(safe-area-inset-top)) 16px 32px}
 .wrap{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 h1{margin:6px 0 0;font-size:24px}
@@ -35,7 +35,9 @@ ol{margin:0;padding-left:20px;font-size:15px}
   </div>
   <div class="card" id="setup">
     <b>알림 받을 사람</b>
+    <p class="muted">관리자에게 받은 이름과 등록 코드를 넣어 주세요.</p>
     <input id="name" placeholder="워크툴에 나오는 내 이름" autocomplete="name">
+    <input id="code" placeholder="등록 코드 4자리" inputmode="numeric" maxlength="4" autocomplete="off">
     <button id="on">알림 켜기</button>
     <p class="st" id="st"></p>
     <p class="muted">업무 지시, 관리자 알림, 재고 부족·유통기한 알림이 이 휴대폰으로 와요. 알림을 누르면 BASE CAMP가 열려요.</p>
@@ -60,7 +62,7 @@ if(saved.token&&Notification&&Notification.permission==='granted'){st('알림이
 var msg=null;
 try{firebase.initializeApp(C.firebase);msg=firebase.messaging()}catch(e){st('알림 기능을 불러오지 못했어요.','bad')}
 $('on').onclick=function(){
-  var name=$('name').value.trim();if(!name){st('이름을 적어 주세요.','bad');return}
+  var name=$('name').value.trim(),code=$('code').value.trim();if(!name||!/^\d{4}$/.test(code)){st('이름과 등록 코드 4자리를 넣어 주세요.','bad');return}
   if(ios&&!standalone){st('먼저 홈 화면에 추가한 뒤 그 아이콘으로 열어 주세요.','bad');return}
   if(!('Notification' in window)||!msg){st('이 브라우저는 알림을 지원하지 않아요.','bad');return}
   st('알림 허용을 눌러 주세요…');
@@ -69,9 +71,9 @@ $('on').onclick=function(){
     return navigator.serviceWorker.register('firebase-messaging-sw.js')}).then(function(reg){
     return msg.getToken({vapidKey:C.vapidKey,serviceWorkerRegistration:reg})}).then(function(token){
     if(!token)throw new Error('notoken');
-    return fetch(C.gasUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({name:name,token:token,ua:navigator.userAgent.slice(0,80)})}).then(function(){return token})}).then(function(token){
-    localStorage.setItem('sodam_notify',JSON.stringify({name:name,token:token}));st('알림을 켰어요 · '+name+' · 1분 안에 시험 알림이 와요','ok')
-  }).catch(function(e){st(e&&e.message==='denied'?'알림이 꺼져 있어요. 휴대폰 설정에서 소담상회의 알림을 허용해 주세요.':'알림을 켜지 못했어요. 잠시 후 다시 눌러 주세요.','bad')})};
+    return fetch(C.gasUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({name:name,code:code,token:token,ua:navigator.userAgent.slice(0,80)})}).then(function(r){return r.json()}).then(function(r){if(!r||!r.ok)throw new Error('ng:'+((r&&r.msg)||''));return token})}).then(function(token){
+    localStorage.setItem('sodam_notify',JSON.stringify({name:name,token:token}));$('code').value='';st('알림을 켰어요 · '+name+' · 곧 시험 알림이 와요','ok')
+  }).catch(function(e){var em=(e&&e.message)||'';st(em.indexOf('ng:')===0?(em.slice(3)||'이름이나 등록 코드가 맞지 않아요.'):em==='denied'?'알림이 꺼져 있어요. 휴대폰 설정에서 소담상회의 알림을 허용해 주세요.':'알림을 켜지 못했어요. 잠시 후 다시 눌러 주세요.','bad')})};
 /* 앱이 열려 있을 때 온 알림도 보여줘요 */
 if(msg)msg.onMessage(function(p){var n=p.notification||p.data||{};navigator.serviceWorker.getRegistration().then(function(r){if(r)r.showNotification(n.title||'소담상회',{body:n.body||'',icon:'icon-192.png',data:{link:BASE}})})});
 })();
