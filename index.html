@@ -43,6 +43,8 @@ ol{margin:0;padding-left:20px;font-size:15px}
     <p class="muted">워크툴 업무 지시와 팀 알림이 이 기기로 와요. 알림을 누르면 BASE CAMP가 열려요.</p>
   </div>
   <a class="btn ghost" id="go">BASE CAMP 열기</a>
+  <a class="btn ghost" id="wt">WORK TOOL 열기</a>
+  <p class="muted" style="text-align:center">처음이라면 WORK TOOL을 한 번 열어 주세요. 관리자가 알림 받을 직원으로 추가할 수 있어요.</p>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
@@ -50,7 +52,7 @@ ol{margin:0;padding-left:20px;font-size:15px}
 <script>
 (function(){
 var C=window.SODAM_CFG,BASE=C.baseCamp,$=function(id){return document.getElementById(id)};
-$('go').href=BASE;
+$('go').href=BASE;$('wt').href=C.workTool;
 var ios=/iphone|ipad|ipod/i.test(navigator.userAgent),standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
 if(ios&&!standalone)$('ios').hidden=false;
 var saved={};try{saved=JSON.parse(localStorage.getItem('sodam_notify')||'{}')}catch(e){}

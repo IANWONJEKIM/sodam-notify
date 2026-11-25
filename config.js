@@ -1,6 +1,7 @@
 /* 소담 알림 설정 · Firebase 웹 설정과 웹 푸시 키는 공개용 값이에요 */
 self.SODAM_CFG = {
   baseCamp: 'https://claude.ai/artifact/KmdH3tyXjos1MHd2T1CQNG',
+  workTool: 'https://claude.ai/artifact/R8UVAgDG69jYDSNshtKEDw',
   firebase: {
     apiKey: 'AIzaSyAinWMJQKy1S6qMWOR0j6nzZIpfGFi4IWE',
     authDomain: 'sodam-notify.firebaseapp.com',
