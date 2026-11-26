@@ -34,11 +34,11 @@ ol{margin:0;padding-left:20px;font-size:15px}
     <p class="muted">아이폰은 홈 화면에 추가한 앱에서만 알림을 받을 수 있어요.</p>
   </div>
   <div class="card" id="setup">
-    <b>알림 받을 사람</b>
+    <b>로그인</b>
     <p class="muted">관리자가 등록한 이름과 내 연락처 뒷번호 4자리를 넣어 주세요.</p>
     <input id="name" placeholder="이름 (관리자가 등록한 이름)" autocomplete="name">
     <input id="code" type="tel" placeholder="연락처 뒷번호 4자리" inputmode="numeric" maxlength="4" autocomplete="off">
-    <button id="on">알림 켜기</button>
+    <button id="on">로그인하고 알림받기</button>
     <p class="st" id="st"></p>
     <p class="muted">워크툴 업무 지시와 팀 알림이 이 기기로 와요. 알림을 누르면 BASE CAMP가 열려요.</p>
   </div>
@@ -74,7 +74,7 @@ $('on').onclick=function(){
     return msg.getToken({vapidKey:C.vapidKey,serviceWorkerRegistration:reg})}).then(function(token){
     if(!token)throw new Error('notoken');
     return fetch(C.gasUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({name:name,code:code,token:token,ua:navigator.userAgent.slice(0,80)})}).then(function(r){return r.json()}).then(function(r){if(!r||!r.ok)throw new Error('ng:'+((r&&r.msg)||''));return token})}).then(function(token){
-    localStorage.setItem('sodam_notify',JSON.stringify({name:name,token:token}));$('code').value='';st('알림을 켰어요 · '+name+' · 곧 시험 알림이 와요','ok')
+    localStorage.setItem('sodam_notify',JSON.stringify({name:name,token:token}));$('code').value='';st('로그인했어요 · '+name+'님 · 곧 시험 알림이 와요','ok')
   }).catch(function(e){var em=(e&&e.message)||'';st(em.indexOf('ng:')===0?(em.slice(3)||'이름이나 연락처 뒷번호가 맞지 않아요.'):em==='denied'?'알림이 꺼져 있어요. 휴대폰 설정에서 소담상회의 알림을 허용해 주세요.':'알림을 켜지 못했어요. 잠시 후 다시 눌러 주세요.','bad')})};
 /* 앱이 열려 있을 때 온 알림도 보여줘요 */
 if(msg)msg.onMessage(function(p){var n=p.notification||p.data||{};navigator.serviceWorker.getRegistration().then(function(r){if(r)r.showNotification(n.title||'소담상회',{body:n.body||'',icon:'icon-192.png',data:{link:BASE}})})});
