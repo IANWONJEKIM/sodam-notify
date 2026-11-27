@@ -24,6 +24,7 @@
 - `channels/{cid}` {name, topic, ord, last, lastAt} → `msgs/{mid}` {uid, text, at, men[], re{like|heart|lol|ok|eyes|pray:[uid]}, rc, ru[], lastReplyAt, ed, del} → `replies/{rid}`
 - `dms/{작은uid_큰uid}` {m:[uid,uid], last, lastAt} → `msgs` → `replies`. **DM은 두 사람만 읽기/쓰기**(관리자도 못 봄, 규칙으로 보장).
 - 팀: MANAGER · MD · OPERATION · VMD · PT
+- 카카오톡 등 앱 안 브라우저는 구글 로그인이 막혀요 → 카카오톡은 `kakaotalk://web/openExternal`로 기본 브라우저로 넘기고, 나머지는 '사파리·크롬에서 열기' 안내.
 - 화면: PC 3단(목록·대화·스레드), 휴대폰 한 화면씩. Enter 보내기, @이름 멘션 자동완성, 이모지 반응, 수정·삭제, 안 읽음 점.
 
 ## 다음 할 일 (2단계)
