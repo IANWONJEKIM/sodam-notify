@@ -18,10 +18,12 @@
 - FCM: 웹 푸시 VAPID 키는 config.js에. 서비스 계정 키는 Apps Script 속성(SA_JSON)에만 있어요(저장소에 넣지 말 것).
 - 아직 안 함: Storage(사진) · Cloud Functions(즉시 알림) → Blaze 요금제 필요. 예산 알림(월 1,000원 정도) 걸기로 함. Storage 무료 범위는 미국 지역 버킷만.
 
-## 새 앱 1단계 (완료 · 2026-11-27)
+## 새 앱 1단계 (완료 · 2026-11-27, 비공개 채널·프로젝트 보드 추가)
 - 구글 로그인, `staff/{gmail소문자}` 에 등록된 사람만 입장. 원제님 Gmail은 자동 관리자.
 - 데이터: `staff/{email}` {name, teams[], admin, active} · `users/{uid}` {email, name, photo, seen} · `users/{uid}/reads/{c_채널id|d_dmid}` {at}
-- `channels/{cid}` {name, topic, ord, last, lastAt} → `msgs/{mid}` {uid, text, at, men[], re{like|heart|lol|ok|eyes|pray:[uid]}, rc, ru[], lastReplyAt, ed, del} → `replies/{rid}`
+- `channels/{cid}` {name, topic, ord, priv(bool), mem[Gmail], kind('proj'|없음), start, end, done, last, lastAt} — priv면 mem만 메시지·할 일 접근(관리자는 설정만). 프로젝트 = kind 'proj' + 비공개, 관리자만 만듦
+  - `channels/{cid}/tasks/{tid}` {title, memo, who[Gmail], due(YYYY-MM-DD), st(todo|doing|done), doneAt, by, at, cc} → `cmts/{id}` {uid, text, at, men[]}
+  - 사이드바 안 읽은 개수: 읽은 시각 이후 남이 보낸 메시지를 100개까지 세서 표시(99+) → `msgs/{mid}` {uid, text, at, men[], re{like|heart|lol|ok|eyes|pray:[uid]}, rc, ru[], lastReplyAt, ed, del} → `replies/{rid}`
 - `dms/{작은uid_큰uid}` {m:[uid,uid], last, lastAt} → `msgs` → `replies`. **DM은 두 사람만 읽기/쓰기**(관리자도 못 봄, 규칙으로 보장).
 - 팀: MANAGER · MD · OPERATION · VMD · PT
 - 카카오톡 등 앱 안 브라우저는 구글 로그인이 막혀요 → 카카오톡은 `kakaotalk://web/openExternal`로 기본 브라우저로 넘기고, 나머지는 '사파리·크롬에서 열기' 안내.

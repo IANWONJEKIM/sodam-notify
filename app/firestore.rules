@@ -3,6 +3,7 @@ rules_version = '2';
 // - 등록된 직원(staff/{Gmail})만 들어올 수 있어요. 원제님 계정은 처음부터 관리자예요.
 // - DM은 대화에 들어 있는 두 사람만 읽고 쓸 수 있어요 (관리자도 못 봐요).
 // - 안 읽음 기록(users/{uid}/reads)은 본인만 봐요.
+// - 비공개 채널·프로젝트(priv: true)는 멤버(mem: Gmail 목록)만 메시지·할 일을 보고 써요. 관리자는 이름·멤버(설정)만 관리해요.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signed() { return request.auth != null && request.auth.token.email_verified == true; }
@@ -29,21 +30,38 @@ service cloud.firestore {
       }
     }
 
-    // 채널: 만들기·이름 바꾸기·지우기는 관리자, 마지막 메시지 표시는 누구나
+    // 채널·프로젝트: 만들기·설정·지우기는 관리자, 마지막 메시지 표시는 볼 수 있는 사람 누구나
+    // 공개 채널은 priv == false, 비공개 채널·프로젝트는 priv == true + mem(멤버 Gmail 목록)
+    function chOk(cid) {
+      let c = get(/databases/$(database)/documents/channels/$(cid)).data;
+      return isStaff() && (c.get('priv', false) == false || em() in c.get('mem', []));
+    }
     match /channels/{cid} {
-      allow read: if isStaff();
+      allow read: if isStaff() && (isAdmin() || resource.data.get('priv', false) == false || em() in resource.data.mem);
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (isStaff() && onlyKeys(['last', 'lastAt']));
+      allow update: if isAdmin() || (isStaff() && (resource.data.get('priv', false) == false || em() in resource.data.mem) && onlyKeys(['last', 'lastAt']));
       match /msgs/{mid} {
-        allow read: if isStaff();
-        allow create: if isStaff() && mine();
-        allow update: if isStaff() && (resource.data.uid == request.auth.uid || onlyKeys(['re', 'rc', 'lastReplyAt', 'ru']));
-        allow delete: if isAdmin() || (isStaff() && resource.data.uid == request.auth.uid);
+        allow read: if chOk(cid);
+        allow create: if chOk(cid) && mine();
+        allow update: if chOk(cid) && (resource.data.uid == request.auth.uid || onlyKeys(['re', 'rc', 'lastReplyAt', 'ru']));
+        allow delete: if chOk(cid) && (isAdmin() || resource.data.uid == request.auth.uid);
         match /replies/{rid} {
-          allow read: if isStaff();
-          allow create: if isStaff() && mine();
-          allow update: if isStaff() && (resource.data.uid == request.auth.uid || onlyKeys(['re']));
-          allow delete: if isAdmin() || (isStaff() && resource.data.uid == request.auth.uid);
+          allow read: if chOk(cid);
+          allow create: if chOk(cid) && mine();
+          allow update: if chOk(cid) && (resource.data.uid == request.auth.uid || onlyKeys(['re']));
+          allow delete: if chOk(cid) && (isAdmin() || resource.data.uid == request.auth.uid);
+        }
+      }
+      // 프로젝트 할 일: 멤버 누구나 만들고 고쳐요. 지우기는 만든 사람이나 관리자
+      match /tasks/{tid} {
+        allow read: if chOk(cid);
+        allow create: if chOk(cid) && request.resource.data.by == request.auth.uid;
+        allow update: if chOk(cid) && request.resource.data.by == resource.data.by;
+        allow delete: if chOk(cid) && (isAdmin() || resource.data.by == request.auth.uid);
+        match /cmts/{xid} {
+          allow read: if chOk(cid);
+          allow create: if chOk(cid) && mine();
+          allow delete: if chOk(cid) && (isAdmin() || resource.data.uid == request.auth.uid);
         }
       }
     }
