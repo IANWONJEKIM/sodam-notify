@@ -11,14 +11,15 @@
 <meta name="theme-color" content="#1F5F4A">
 <script src="config.js"></script>
 <script>
-/* 로그인을 마친 기기에서 아이콘으로 열면 기다리지 않고 바로 BASE CAMP로 가요 (?setup 으로 열면 로그인 화면에 머물러요) */
-(function(){try{var s=JSON.parse(localStorage.getItem('sodam_notify')||'{}'),sa=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+/* 알림을 누르면 ?go=탭 으로 열려요 → 워크툴의 그 탭으로 (알림 기능은 같은 주소 링크만 열 수 있어서 여기를 거쳐 가요)
+   로그인을 마친 기기에서 아이콘으로 열면 기다리지 않고 바로 BASE CAMP로 가요 (?setup 으로 열면 로그인 화면에 머물러요) */
+(function(){try{var g=location.search.match(/[?&]go=([a-z]+)/);if(g){document.documentElement.className='go';location.replace(SODAM_CFG.workTool+'#go='+g[1]);return}var s=JSON.parse(localStorage.getItem('sodam_notify')||'{}'),sa=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
 if(s.token&&window.Notification&&Notification.permission==='granted'&&sa&&location.search.indexOf('setup')<0){document.documentElement.className='go';location.replace(SODAM_CFG.baseCamp)}}catch(e){}})();
 </script>
 <style>
 :root{--bg:#F1F3F2;--card:#fff;--ink:#17201C;--muted:#5E6A64;--line:#D3D9D6;--accent:#1F5F4A;--ok:#1F7A4D;--bad:#B23B3B}
 @media (prefers-color-scheme:dark){:root{--bg:#0F1412;--card:#18201C;--ink:#E8EEEB;--muted:#9AA8A1;--line:#2E3934;--accent:#4FB08B;--ok:#5CC58E;--bad:#E07070}}
-html.go .wrap{display:none}html.go body:before{content:"BASE CAMP 여는 중…";display:block;margin-top:40vh;text-align:center;font-weight:700;color:var(--muted)}
+html.go .wrap{display:none}html.go body:before{content:"여는 중…";display:block;margin-top:40vh;text-align:center;font-weight:700;color:var(--muted)}
 *{box-sizing:border-box}[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;padding:max(20px,env(safe-area-inset-top)) 16px 32px}
 .wrap{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
