@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1F5F4A">
+<title>소담상회</title>
+<link rel="icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<style>
+/* 소담상회 올인원 · 왼쪽 목록(채널·DM) + 가운데 대화 + 오른쪽 스레드. 휴대폰에서는 한 화면씩 넘겨 봐요 */
+:root{
+  --bg:#F4F4F6;--surface:#FFFFFF;--soft:#F1F3F1;--ink:#1A1F1C;--muted:#5C645F;--line:#E1E5E1;
+  --side:#173F33;--side-ink:#E7F0EC;--side-muted:#9DBCB0;--side-hover:#21503F;--side-on:#2E6B56;
+  --accent:#1F5F4A;--accent-soft:#E2EFE9;--accent-ink:#FFFFFF;--bad:#C2412A;--warn:#97600A;--men:#FFF4D6;
+  --f:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#111513;--surface:#1A1F1C;--soft:#222824;--ink:#E7EBE8;--muted:#9AA39D;--line:#2E3531;
+  --side:#0E1A15;--side-ink:#DCE7E2;--side-muted:#86A397;--side-hover:#172A22;--side-on:#21483A;
+  --accent:#6CC3A0;--accent-soft:#1D3229;--accent-ink:#0E1A15;--bad:#FF8E78;--warn:#F0C066;--men:#3A3115;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f);-webkit-text-size-adjust:100%}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.btn{border:0;background:var(--accent);color:var(--accent-ink);border-radius:9px;padding:9px 15px;font-weight:700;font-size:14px;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{padding:5px 10px;font-size:13px;border-radius:7px}
+.btn.danger{background:var(--bad);color:#fff}
+.btn[disabled]{opacity:.45;cursor:default}
+.inp{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:9px 11px;font-size:15px;min-width:0;width:100%}
+.muted{color:var(--muted)}.small{font-size:13px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:11px;font-size:14px;font-weight:600;z-index:60;max-width:calc(100% - 32px);text-align:center}
+/* 로그인 */
+.gate{min-height:100%;display:grid;place-items:center;padding:24px}
+.gate .box{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:32px 26px;max-width:380px;width:100%;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+.gate img{width:72px;height:72px;border-radius:18px}
+.gate h1{margin:0;font-size:22px}
+.gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px;font-weight:700}
+.gbtn svg{width:18px;height:18px}
+/* 레이아웃 */
+.shell{display:grid;grid-template-columns:260px minmax(0,1fr);height:100%;height:100dvh}
+.shell.thr{grid-template-columns:260px minmax(0,1fr) minmax(300px,380px)}
+.side{background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;min-height:0;padding-top:env(safe-area-inset-top,0px)}
+.ws{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
+.ws img{width:30px;height:30px;border-radius:8px}
+.ws b{font-size:16px;flex:1}
+.ws button{background:none;border:0;color:var(--side-muted);font-size:13px;padding:4px}
+.slist{flex:1;overflow-y:auto;padding:10px 8px 20px}
+.sh{display:flex;align-items:center;justify-content:space-between;padding:12px 8px 4px;font-size:12.5px;font-weight:700;color:var(--side-muted);letter-spacing:.02em}
+.sh button{background:none;border:0;color:var(--side-muted);font-size:18px;line-height:1;padding:0 4px;border-radius:5px}
+.sh button:hover{background:var(--side-hover);color:var(--side-ink)}
+.si{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;color:var(--side-muted);text-align:left;padding:6px 10px;border-radius:7px;font-size:15px;min-width:0}
+.si:hover{background:var(--side-hover)}
+.si.on{background:var(--side-on);color:#fff}
+.si.un{color:#fff;font-weight:700}
+.si .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.si .hash{opacity:.7;width:16px;text-align:center;flex:none}
+.si .dot{width:8px;height:8px;border-radius:50%;background:#fff;flex:none}
+.si .cnt{background:var(--bad);color:#fff;border-radius:999px;font-size:11.5px;font-weight:700;padding:1px 7px;flex:none}
+.me{padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;font-size:14px}
+.me .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me button{background:none;border:0;color:var(--side-muted);font-size:13px}
+.av{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;flex:none;overflow:hidden;background:#4A7A68}
+.av img{width:100%;height:100%;object-fit:cover}
+.av.sm{width:24px;height:24px;border-radius:6px;font-size:11px}
+.main,.thread{display:flex;flex-direction:column;min-height:0;background:var(--surface);min-width:0}
+.thread{border-left:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);min-height:56px;padding-top:calc(10px + env(safe-area-inset-top,0px))}
+.top h2{margin:0;font-size:17px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top h2 small{font-weight:500;color:var(--muted);font-size:13px;margin-left:8px}
+.top .back{border:0;background:none;font-size:22px;line-height:1;padding:2px 6px;display:none}
+.msgs{flex:1;overflow-y:auto;padding:12px 0 8px;overscroll-behavior:contain}
+.day{display:flex;align-items:center;gap:10px;margin:14px 16px 6px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.day:before,.day:after{content:'';flex:1;height:1px;background:var(--line)}
+.m{display:grid;grid-template-columns:36px minmax(0,1fr);gap:0 10px;padding:4px 16px;position:relative}
+.m:hover{background:var(--soft)}
+.m.cont{padding-top:1px}
+.m.cont .av{visibility:hidden;height:0}
+.m.men{background:var(--men)}
+.m .hd{display:flex;align-items:baseline;gap:8px}
+.m .hd b{font-size:15px}
+.m .hd time{font-size:12px;color:var(--muted)}
+.m .tx{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.m .tx a{color:var(--accent)}
+.m .tx .at{background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:0 3px;font-weight:600}
+.m .tx.del{color:var(--muted);font-style:italic}
+.m .ed{font-size:12px;color:var(--muted)}
+.rx{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.rx button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:1px 8px;font-size:13px;display:inline-flex;gap:4px;align-items:center}
+.rx button.mine{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.trl{display:inline-flex;align-items:center;gap:6px;margin-top:4px;border:0;background:none;padding:2px 0;color:var(--accent);font-weight:700;font-size:13px}
+.trl small{color:var(--muted);font-weight:500}
+.acts{position:absolute;right:14px;top:-14px;display:none;background:var(--surface);border:1px solid var(--line);border-radius:9px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:2px}
+.m:hover .acts,.m.act .acts{display:flex}
+.acts button{border:0;background:none;padding:5px 7px;border-radius:6px;font-size:15px;line-height:1}
+.acts button:hover{background:var(--soft)}
+.emo{position:absolute;right:14px;top:22px;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.12);padding:4px;display:flex;gap:2px}
+.emo button{border:0;background:none;font-size:20px;padding:4px 6px;border-radius:6px}
+.emo button:hover{background:var(--soft)}
+.more{display:block;margin:6px auto;border:0;background:none;color:var(--accent);font-weight:700;font-size:13px}
+.comp{padding:8px 14px calc(12px + env(safe-area-inset-bottom,0px));position:relative}
+.cbox{border:1px solid var(--line);border-radius:12px;background:var(--surface);display:flex;align-items:flex-end;gap:6px;padding:6px 6px 6px 12px}
+.cbox:focus-within{border-color:var(--accent)}
+.cbox textarea{flex:1;border:0;resize:none;background:none;padding:6px 0;max-height:180px;min-height:24px;line-height:1.45;outline:none;font-size:15px}
+.cbox .send{border:0;background:var(--accent);color:var(--accent-ink);border-radius:8px;width:36px;height:36px;font-size:16px;flex:none}
+.cbox .send[disabled]{opacity:.35}
+.mpop{position:absolute;left:14px;bottom:calc(100% - 4px);background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.12);min-width:220px;max-height:240px;overflow-y:auto;padding:4px;z-index:10}
+.mpop button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;padding:6px 8px;border-radius:7px;text-align:left}
+.mpop button.sel,.mpop button:hover{background:var(--accent-soft)}
+.hint{font-size:11.5px;color:var(--muted);margin:4px 2px 0}
+.empty{color:var(--muted);text-align:center;padding:40px 20px}
+.troot{border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:6px}
+.tcnt{font-size:12.5px;color:var(--muted);margin:2px 16px 6px}
+/* 관리 · 새 DM */
+.page{flex:1;overflow-y:auto;padding:18px 16px 40px;display:flex;flex-direction:column;gap:16px;max-width:860px;width:100%;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-size:16px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sp{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.srow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.srow:first-of-type{border-top:0}
+.srow .who{flex:1;min-width:160px}
+.srow .who b{display:block}
+.pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.pill.ok{background:var(--accent-soft);color:var(--accent)}.pill.warn{background:var(--men);color:var(--warn)}
+.plist button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:9px 6px;border-radius:9px;text-align:left}
+.plist button:hover{background:var(--soft)}
+.plist button[disabled]{opacity:.5;cursor:default}
+.side .si .av.sm{background:#3E6B5A}
+/* 휴대폰: 한 화면씩 */
+@media (max-width:899px){
+  .shell,.shell.thr{grid-template-columns:minmax(0,1fr)}
+  .shell[data-pane="list"] .main,.shell[data-pane="list"] .thread{display:none}
+  .shell[data-pane="conv"] .side,.shell[data-pane="conv"] .thread{display:none}
+  .shell[data-pane="thread"] .side,.shell[data-pane="thread"] .main{display:none}
+  .thread{border-left:0}
+  .top .back{display:block}
+  .acts{top:-10px}
+  input,textarea,select{font-size:16px!important}
+}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="../config.js"></script>
+</head>
+<body>
+<div id="app"><div class="gate"><div class="box"><img src="../icon-192.png" alt=""><p class="muted">불러오는 중…</p></div></div></div>
+<script>
+(function(){
+'use strict';
+/* ================= 기본 ================= */
+var OWNER='wonjea47@gmail.com';
+var TEAMS=['MANAGER','MD','OPERATION','VMD','PT'];
+var EMO=[['like','👍'],['heart','❤️'],['lol','😂'],['ok','✅'],['eyes','👀'],['pray','🙏']],EMOM={};EMO.forEach(function(e){EMOM[e[0]]=e[1]});
+var WD=['일','월','화','수','목','금','토'];
+firebase.initializeApp(SODAM_CFG.firebase);
+var auth=firebase.auth(),db=firebase.firestore(),FV=firebase.firestore.FieldValue;
+try{db.enablePersistence({synchronizeTabs:true}).catch(function(){})}catch(e){}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function pad(n){return (n<10?'0':'')+n}
+function ms(t){return t&&t.toMillis?t.toMillis():typeof t==='number'?t:Date.now()}
+function hm(t){var d=new Date(ms(t)),h=d.getHours();return (h<12?'오전 ':'오후 ')+((h%12)||12)+':'+pad(d.getMinutes())}
+function dayKey(t){var d=new Date(ms(t));return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function dayLabel(t){var d=new Date(ms(t)),n=new Date(),k=dayKey(t);if(k===dayKey(n.getTime()))return '오늘';n.setDate(n.getDate()-1);if(k===dayKey(n.getTime()))return '어제';return (d.getMonth()+1)+'월 '+d.getDate()+'일 ('+WD[d.getDay()]+')'+(d.getFullYear()!==new Date().getFullYear()?' · '+d.getFullYear():'')}
+var tt;function toast(m){var t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';t.setAttribute('role','status');document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(function(){t.hidden=true},2800)}
+function errMsg(e){var c=e&&e.code||'';return c==='permission-denied'?'권한이 없어요':c==='unavailable'?'인터넷 연결을 확인해 주세요':(e&&e.message)||'잠시 후 다시 해 주세요'}
+function colorOf(s){var h=0;s=String(s||'');for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return 'hsl('+(Math.abs(h)%360)+',38%,38%)'}
+
+/* ================= 상태 ================= */
+var S={u:null,email:'',me:null,staff:{},users:{},channels:[],dms:[],reads:{},view:null,msgs:[],lim:60,thread:null,replies:[],pane:'list',emo:null,edit:null,loaded:{}};
+var UN=[];function off(){UN.forEach(function(f){try{f()}catch(e){}});UN=[]}
+var CUN=null,TUN=null;
+function isAdmin(){return S.email===OWNER||!!(S.me&&S.me.admin)}
+function nameOf(uid){var u=S.users[uid];if(!u)return '알 수 없음';var st=S.staff[u.email];return (st&&st.name)||u.name||u.email}
+function userOfEmail(e){for(var k in S.users)if(S.users[k].email===e)return k;return ''}
+function convKey(v){v=v||S.view;return v?(v.k==='c'?'c_':'d_')+v.id:''}
+function convRef(v){v=v||S.view;return db.collection(v.k==='c'?'channels':'dms').doc(v.id)}
+function dmId(a,b){return a<b?a+'_'+b:b+'_'+a}
+function dmOther(d){return (d.m||[]).filter(function(x){return x!==S.u.uid})[0]||S.u.uid}
+function chan(id){for(var i=0;i<S.channels.length;i++)if(S.channels[i].id===id)return S.channels[i];return null}
+function dm(id){for(var i=0;i<S.dms.length;i++)if(S.dms[i].id===id)return S.dms[i];return null}
+function unread(k,c){if(!c||!c.lastAt)return false;var r=S.reads[k];if(c.last&&c.last.by===S.u.uid)return false;return !r||ms(c.lastAt)>ms(r.at)}
+
+/* ================= 로그인 ================= */
+var GSVG='<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+function gate(msg,showLogin,showOut){document.getElementById('app').innerHTML='<div class="gate"><div class="box"><img src="../icon-192.png" alt=""><h1>소담상회</h1>'+(msg?'<p class="muted" style="margin:0">'+msg+'</p>':'')+(showLogin?'<button class="gbtn" data-act="login">'+GSVG+'구글 계정으로 로그인</button><p class="small muted" style="margin:0">관리자가 등록한 Gmail로만 들어올 수 있어요.</p>':'')+(showOut?'<button class="btn ghost" data-act="logout">다른 계정으로 로그인</button>':'')+'</div></div>'}
+function login(){var p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
+  auth.signInWithPopup(p).catch(function(e){var c=e&&e.code;if(c==='auth/popup-blocked'||c==='auth/operation-not-supported-in-environment'||c==='auth/cancelled-popup-request')return auth.signInWithRedirect(p);if(c!=='auth/popup-closed-by-user')toast('로그인하지 못했어요 · '+(c||errMsg(e)))})}
+auth.getRedirectResult&&auth.getRedirectResult().catch(function(e){toast('로그인하지 못했어요 · '+(e&&e.code||''))});
+auth.onAuthStateChanged(function(u){off();if(CUN){CUN();CUN=null}if(TUN){TUN();TUN=null}
+  S.u=u;S.me=null;S.view=null;
+  if(!u)return gate('',true);
+  S.email=String(u.email||'').toLowerCase();gate('확인하는 중…');
+  var ref=db.collection('staff').doc(S.email);
+  ref.get().then(function(d){
+    if(!d.exists&&S.email===OWNER)return ref.set({name:u.displayName||'관리자',teams:['MANAGER'],admin:true,active:true,at:FV.serverTimestamp()}).then(function(){return ref.get()});
+    return d}).then(function(d){
+    if(!d.exists||d.data().active===false)return gate('<b>'+esc(S.email)+'</b><br>이 계정은 등록되지 않았어요. 관리자에게 이 Gmail을 등록해 달라고 해 주세요.',false,true);
+    S.me=d.data();
+    return db.collection('users').doc(u.uid).set({email:S.email,name:S.me.name||u.displayName||'',photo:u.photoURL||'',seen:FV.serverTimestamp()},{merge:true}).then(start)
+  }).catch(function(e){gate('불러오지 못했어요 · '+esc(errMsg(e)),false,true)})});
+
+/* ================= 데이터 구독 ================= */
+function start(){
+  UN.push(db.collection('staff').onSnapshot(function(s){S.staff={};s.forEach(function(d){S.staff[d.id]=d.data()});S.me=S.staff[S.email]||S.me;if(S.me&&S.me.active===false)return auth.signOut();soon()}));
+  UN.push(db.collection('users').onSnapshot(function(s){S.users={};s.forEach(function(d){S.users[d.id]=d.data()});soon()}));
+  UN.push(db.collection('channels').onSnapshot(function(s){S.channels=s.docs.map(function(d){var o=d.data();o.id=d.id;return o}).sort(function(a,b){return (a.ord||0)-(b.ord||0)||String(a.name).localeCompare(String(b.name),'ko')});S.loaded.ch=true;
+    if(!S.channels.length&&isAdmin()&&!S.seeded){S.seeded=true;var b=db.batch();[['전체','매장 전체 공지와 이야기',0],['업무','업무 이야기',1]].forEach(function(c){b.set(db.collection('channels').doc(),{name:c[0],topic:c[1],ord:c[2],by:S.u.uid,at:FV.serverTimestamp()})});b.commit().catch(function(){})}
+    if(!S.view&&S.channels.length&&!narrow())openConv({k:'c',id:S.channels[0].id});soon()}));
+  UN.push(db.collection('dms').where('m','array-contains',S.u.uid).onSnapshot(function(s){S.dms=s.docs.map(function(d){var o=d.data();o.id=d.id;return o}).sort(function(a,b){return ms(b.lastAt)-ms(a.lastAt)});soon()},function(){}));
+  UN.push(db.collection('users').doc(S.u.uid).collection('reads').onSnapshot(function(s){S.reads={};s.forEach(function(d){S.reads[d.id]=d.data()});soon()}));
+  render();
+}
+var rT;function soon(){clearTimeout(rT);rT=setTimeout(render,30)}
+function narrow(){return window.innerWidth<900}
+
+/* ================= 대화 열기 ================= */
+function openConv(v){if(CUN){CUN();CUN=null}closeThread(true);S.view=v;S.msgs=[];S.lim=60;S.emo=null;S.edit=null;S.pane='conv';S.atBottom=true;listen();markRead();render();setTimeout(function(){var t=document.getElementById('ta');if(t&&!narrow())t.focus()},50)}
+function listen(){if(CUN)CUN();var v=S.view;CUN=convRef(v).collection('msgs').orderBy('at','desc').limit(S.lim).onSnapshot({includeMetadataChanges:false},function(s){if(S.view!==v)return;S.msgs=s.docs.map(function(d){var o=d.data();o.id=d.id;return o}).reverse();S.more=s.size>=S.lim;markRead();renderMsgs()},function(e){toast('메시지를 불러오지 못했어요 · '+errMsg(e))})}
+function markRead(){if(!S.view||document.hidden)return;var k=convKey(),c=S.view.k==='c'?chan(S.view.id):dm(S.view.id);if(c&&!unread(k,c)&&S.reads[k])return;
+  db.collection('users').doc(S.u.uid).collection('reads').doc(k).set({at:FV.serverTimestamp()}).catch(function(){})}
+document.addEventListener('visibilitychange',function(){if(!document.hidden)markRead()});
+function openThread(mid){if(TUN){TUN();TUN=null}S.thread=mid;S.replies=[];S.pane='thread';var v=S.view;
+  TUN=convRef(v).collection('msgs').doc(mid).collection('replies').orderBy('at').onSnapshot(function(s){if(S.thread!==mid)return;S.replies=s.docs.map(function(d){var o=d.data();o.id=d.id;return o});renderThread()},function(e){toast(errMsg(e))});render();setTimeout(function(){var t=document.getElementById('tta');if(t&&!narrow())t.focus()},50)}
+function closeThread(silent){if(TUN){TUN();TUN=null}S.thread=null;S.replies=[];if(S.pane==='thread')S.pane='conv';if(!silent)render()}
+function openDM(uid){var id=dmId(S.u.uid,uid),ref=db.collection('dms').doc(id);
+  ref.get().then(function(d){if(d.exists)return;var m=[S.u.uid,uid].sort();return ref.set({m:m,at:FV.serverTimestamp()})}).then(function(){openConv({k:'d',id:id})}).catch(function(e){toast('DM을 열지 못했어요 · '+errMsg(e))})}
+
+/* ================= 보내기 ================= */
+function mentions(text){var out=[];Object.keys(S.users).forEach(function(uid){var n=nameOf(uid);if(n&&text.indexOf('@'+n)>=0)out.push(uid)});if(/@(전체|channel|모두)/.test(text))out.push('*');return out}
+function send(text,inThread){text=text.replace(/\s+$/,'');if(!text.trim())return;var v=S.view,ref=convRef(v),m={uid:S.u.uid,text:text.slice(0,4000),at:FV.serverTimestamp(),men:mentions(text)};
+  if(inThread){var mid=S.thread,pr=ref.collection('msgs').doc(mid);pr.collection('replies').add(m).then(function(){return pr.update({rc:FV.increment(1),lastReplyAt:FV.serverTimestamp(),ru:FV.arrayUnion(S.u.uid)})}).catch(function(e){toast('보내지 못했어요 · '+errMsg(e))});return}
+  S.atBottom=true;ref.collection('msgs').add(m).then(function(){return ref.update({last:{text:text.slice(0,80),by:S.u.uid},lastAt:FV.serverTimestamp()})}).catch(function(e){toast('보내지 못했어요 · '+errMsg(e))})}
+function msgRef(id,rid){var r=convRef().collection('msgs').doc(rid?S.thread:id);return rid?r.collection('replies').doc(rid):r}
+function react(id,rid,key){var list=(rid?S.replies:S.msgs).filter(function(x){return x.id===(rid||id)})[0];if(!list)return;var has=((list.re||{})[key]||[]).indexOf(S.u.uid)>=0,up={};up['re.'+key]=has?FV.arrayRemove(S.u.uid):FV.arrayUnion(S.u.uid);msgRef(id,rid).update(up).catch(function(e){toast(errMsg(e))})}
+function delMsg(id,rid){var x=(rid?S.replies:S.msgs).filter(function(o){return o.id===(rid||id)})[0];if(!x)return;var r=msgRef(id,rid);
+  (!rid&&x.rc>0?r.update({text:'',del:true}):r.delete().then(function(){if(rid)return convRef().collection('msgs').doc(S.thread).update({rc:FV.increment(-1)})})).catch(function(e){toast('지우지 못했어요 · '+errMsg(e))})}
+function saveEdit(id,rid,text){text=text.replace(/\s+$/,'');if(!text.trim())return;msgRef(id,rid).update({text:text.slice(0,4000),ed:FV.serverTimestamp(),men:mentions(text)}).then(function(){S.edit=null;rid?renderThread():renderMsgs()}).catch(function(e){toast('고치지 못했어요 · '+errMsg(e))})}
+
+/* ================= 그리기 ================= */
+function av(uid,sm){var u=S.users[uid]||{},n=nameOf(uid);return '<span class="av'+(sm?' sm':'')+'" style="background:'+colorOf(u.email||uid)+'">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="" referrerpolicy="no-referrer">':esc(String(n).slice(0,1)))+'</span>'}
+function fmt(t){var h=esc(t);h=h.replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+  var names=Object.keys(S.users).map(nameOf).filter(Boolean).sort(function(a,b){return b.length-a.length});
+  names.forEach(function(n){var e=esc('@'+n);if(h.indexOf(e)>=0)h=h.split(e).join('<span class="at">'+e+'</span>')});
+  h=h.replace(/@(전체|모두)/g,'<span class="at">@$1</span>');return h}
+function msgHTML(x,prev,rid,root){var cont=prev&&prev.uid===x.uid&&!prev.del&&ms(x.at)-ms(prev.at)<5*6e4&&dayKey(prev.at)===dayKey(x.at),mine=x.uid===S.u.uid,men=(x.men||[]).indexOf(S.u.uid)>=0&&!mine,ids=' data-id="'+esc(rid?S.thread:x.id)+'"'+(rid?' data-rid="'+esc(x.id)+'"':'');
+  var h='<div class="m'+(cont?' cont':'')+(men?' men':'')+(S.emo===(rid||x.id)||S.act===(rid||x.id)?' act':'')+'"'+ids+'>'+av(x.uid)+'<div>';
+  if(!cont)h+='<div class="hd"><b>'+esc(nameOf(x.uid))+'</b><time>'+hm(x.at)+'</time></div>';
+  if(S.edit===(rid||x.id))h+='<div class="cbox" style="margin:4px 0"><textarea id="eta" rows="2">'+esc(x.text)+'</textarea></div><div class="row" style="margin-bottom:4px"><button class="btn sm ghost" data-act="edcancel">취소</button><button class="btn sm" data-act="edsave"'+ids+'>저장</button><span class="small muted">Enter 저장 · Esc 취소</span></div>';
+  else h+=x.del?'<div class="tx del">삭제된 메시지예요</div>':'<div class="tx">'+fmt(x.text)+(x.ed?' <span class="ed">(수정됨)</span>':'')+'</div>';
+  var re=x.re||{},rk=EMO.filter(function(e){return re[e[0]]&&re[e[0]].length});
+  if(rk.length)h+='<div class="rx">'+rk.map(function(e){var L=re[e[0]];return '<button data-act="react" data-k="'+e[0]+'"'+ids+' class="'+(L.indexOf(S.u.uid)>=0?'mine':'')+'" title="'+esc(L.map(nameOf).join(', '))+'">'+e[1]+' '+L.length+'</button>'}).join('')+'</div>';
+  if(!rid&&!root&&x.rc>0)h+='<button class="trl" data-act="thread" data-id="'+esc(x.id)+'">'+(x.ru||[]).slice(0,3).map(function(u){return av(u,1)}).join('')+'답글 '+x.rc+'개 <small>'+(x.lastReplyAt?dayLabel(x.lastReplyAt)+' '+hm(x.lastReplyAt):'')+'</small></button>';
+  if(!x.del)h+='<div class="acts"><button data-act="emo"'+ids+' title="반응">😀</button>'+(rid?'':'<button data-act="thread" data-id="'+esc(x.id)+'" title="답글">💬</button>')+(mine?'<button data-act="edit"'+ids+' title="고치기">✏️</button>':'')+(mine||isAdmin()&&S.view.k==='c'?'<button data-act="del"'+ids+' title="지우기">🗑</button>':'')+'</div>';
+  if(S.emo===(rid||x.id))h+='<div class="emo">'+EMO.map(function(e){return '<button data-act="react" data-k="'+e[0]+'"'+ids+'>'+e[1]+'</button>'}).join('')+'</div>';
+  return h+'</div></div>'}
+function listHTML(L,rid){var h='',pd='';L.forEach(function(x,i){var dk=dayKey(x.at);if(dk!==pd){h+='<div class="day">'+dayLabel(x.at)+'</div>';pd=dk}h+=msgHTML(x,i&&dayKey(L[i-1].at)===dk?L[i-1]:null,rid)});return h}
+function convTitle(v){if(!v)return '';if(v.k==='c'){var c=chan(v.id);return '<span class="muted">#</span> '+esc(c?c.name:'')+(c&&c.topic?'<small>'+esc(c.topic)+'</small>':'')}var d=dm(v.id);return d?esc(nameOf(dmOther(d)))+(dmOther(d)===S.u.uid?' <small>나에게 메모</small>':''):'DM'}
+function sideHTML(){var h='<div class="ws"><img src="../icon-192.png" alt=""><b>소담상회</b></div><div class="slist">';
+  h+='<div class="sh">채널'+(isAdmin()?'<button data-act="admin" data-v="ch" title="채널 관리" aria-label="채널 관리">+</button>':'')+'</div>';
+  S.channels.forEach(function(c){var k='c_'+c.id,on=S.view&&S.view.k==='c'&&S.view.id===c.id,un=!on&&unread(k,c);h+='<button class="si'+(on?' on':'')+(un?' un':'')+'" data-act="open" data-k="c" data-id="'+esc(c.id)+'"><span class="hash">#</span><span class="nm">'+esc(c.name)+'</span>'+(un?'<span class="dot"></span>':'')+'</button>'});
+  h+='<div class="sh">다이렉트 메시지<button data-act="newdm" title="새 DM" aria-label="새 DM">+</button></div>';
+  S.dms.forEach(function(d){var o=dmOther(d),k='d_'+d.id,on=S.view&&S.view.k==='d'&&S.view.id===d.id,un=!on&&unread(k,d);if(!d.lastAt&&!on)return;h+='<button class="si'+(on?' on':'')+(un?' un':'')+'" data-act="open" data-k="d" data-id="'+esc(d.id)+'">'+av(o,1)+'<span class="nm">'+esc(nameOf(o))+(o===S.u.uid?' (나)':'')+'</span>'+(un?'<span class="cnt">새</span>':'')+'</button>'});
+  if(isAdmin())h+='<div class="sh">관리</div><button class="si'+(S.view&&S.view.k==='admin'?' on':'')+'" data-act="admin" data-v="staff"><span class="hash">⚙</span><span class="nm">직원 · 채널 관리</span></button>';
+  return h+'</div><div class="me">'+av(S.u.uid)+'<span class="nm"><b>'+esc(nameOf(S.u.uid))+'</b><br><span style="color:var(--side-muted);font-size:12px">'+esc(S.email)+'</span></span><button data-act="logout">로그아웃</button></div>'}
+function mainHTML(){var v=S.view;
+  if(!v)return '<div class="top"><h2>소담상회</h2></div><div class="empty">왼쪽에서 채널이나 DM을 골라 주세요.</div>';
+  if(v.k==='admin')return '<div class="top"><button class="back" data-act="back" aria-label="뒤로">‹</button><h2>직원 · 채널 관리</h2></div>'+adminHTML();
+  if(v.k==='newdm')return '<div class="top"><button class="back" data-act="back" aria-label="뒤로">‹</button><h2>새 DM</h2></div>'+newdmHTML();
+  var ph=v.k==='c'?'#'+((chan(v.id)||{}).name||'')+'에 메시지 보내기':nameOf(dm(v.id)?dmOther(dm(v.id)):'')+'님에게 메시지';
+  return '<div class="top"><button class="back" data-act="back" aria-label="목록으로">‹</button><h2>'+convTitle(v)+'</h2></div><div class="msgs" id="msgs"></div>'+compHTML('ta',ph)}
+function compHTML(id,ph){return '<div class="comp"><div class="mpop" id="'+id+'-pop" hidden></div><div class="cbox"><textarea id="'+id+'" rows="1" placeholder="'+esc(ph)+'" enterkeyhint="send"></textarea><button class="send" data-act="send" data-v="'+id+'" aria-label="보내기" disabled>➤</button></div>'+(narrow()?'':'<p class="hint">Enter 보내기 · Shift+Enter 줄 바꿈 · @이름 으로 부르기</p>')+'</div>'}
+function threadHTML(){var root=S.msgs.filter(function(x){return x.id===S.thread})[0];return '<div class="top"><button class="back" data-act="tclose" aria-label="뒤로">‹</button><h2>스레드 <small>'+convTitle(S.view).replace(/<small>.*<\/small>/,'')+'</small></h2><button class="btn sm ghost" data-act="tclose" style="'+(narrow()?'display:none':'')+'">닫기</button></div><div class="msgs" id="tmsgs">'+(root?'<div class="troot">'+msgHTML(root,null,null,1)+'</div>':'')+'</div>'+compHTML('tta','답글 달기')}
+function renderMsgs(){var el=document.getElementById('msgs');if(!el)return;var near=el.scrollHeight-el.scrollTop-el.clientHeight<80||S.atBottom;
+  var h=S.more?'<button class="more" data-act="more">이전 메시지 더 보기</button>':'';
+  h+=S.msgs.length?listHTML(S.msgs):'<div class="empty">'+(S.view.k==='c'?'첫 메시지를 남겨 보세요.':'아직 나눈 대화가 없어요.')+'</div>';
+  var oh=el.scrollHeight,ot=el.scrollTop;el.innerHTML=h;if(near){el.scrollTop=el.scrollHeight;S.atBottom=false}else if(S.keepTop){el.scrollTop=el.scrollHeight-oh+ot;S.keepTop=false}
+  if(S.thread)renderThread()}
+function renderThread(){var el=document.getElementById('tmsgs');if(!el)return;var root=S.msgs.filter(function(x){return x.id===S.thread})[0],near=el.scrollHeight-el.scrollTop-el.clientHeight<80;
+  el.innerHTML=(root?'<div class="troot">'+msgHTML(root,null,null,1)+'</div>':'')+(S.replies.length?'<div class="tcnt">답글 '+S.replies.length+'개</div>'+listHTML(S.replies,true):'<div class="empty" style="padding:20px">첫 답글을 달아 보세요.</div>');if(near)el.scrollTop=el.scrollHeight}
+function render(){if(!S.u||!S.me)return;var app=document.getElementById('app'),keep=snapComposer();
+  if(!narrow()&&S.pane==='list'&&S.view)S.pane='conv';
+  app.innerHTML='<div class="shell'+(S.thread&&!narrow()?' thr':'')+'" data-pane="'+(narrow()?S.pane:'conv')+'"><aside class="side">'+sideHTML()+'</aside><main class="main">'+mainHTML()+'</main>'+(S.thread?'<section class="thread">'+threadHTML()+'</section>':'')+'</div>';
+  renderMsgs();restoreComposer(keep);
+  var n=S.channels.filter(function(c){return unread('c_'+c.id,c)}).length+S.dms.filter(function(d){return unread('d_'+d.id,d)}).length;document.title=(n?'('+n+') ':'')+'소담상회'}
+/* 다시 그려도 쓰던 글이 지워지지 않게 */
+function snapComposer(){var o={};['ta','tta','eta'].forEach(function(id){var e=document.getElementById(id);if(e)o[id]={v:e.value,f:document.activeElement===e,s:e.selectionStart}});return o}
+function restoreComposer(o){Object.keys(o).forEach(function(id){var e=document.getElementById(id);if(!e)return;e.value=o[id].v;grow(e);if(o[id].f){e.focus();try{e.setSelectionRange(o[id].s,o[id].s)}catch(x){}}})}
+function grow(e){e.style.height='auto';e.style.height=Math.min(180,e.scrollHeight)+'px';var b=e.parentNode.querySelector('.send');if(b)b.disabled=!e.value.trim()}
+
+/* ================= 관리 · 새 DM ================= */
+function adminHTML(){var L=Object.keys(S.staff).sort(function(a,b){return String(S.staff[a].name).localeCompare(String(S.staff[b].name),'ko')}),f=S.sf||(S.sf={teams:[]});
+  var h='<div class="page"><div class="card"><h3>직원 등록</h3><p class="small muted" style="margin:0">등록한 Gmail로 구글 로그인하면 들어올 수 있어요. 지금 쓰는 워크툴 직원 명단과는 따로예요.</p>'+
+    '<div class="row"><input class="inp" id="sf-name" placeholder="이름 (본명)" style="flex:1 1 140px" value="'+esc(f.name||'')+'"><input class="inp" id="sf-email" type="email" placeholder="Gmail 주소" style="flex:2 1 220px" value="'+esc(f.email||'')+'" autocomplete="off"></div>'+
+    '<div class="row"><span class="small muted">팀</span><div class="chips">'+TEAMS.map(function(t){return '<button class="chip" data-act="sfteam" data-v="'+t+'" aria-pressed="'+(f.teams.indexOf(t)>=0)+'">'+t+'</button>'}).join('')+'</div><span class="sp"></span><label class="small"><input type="checkbox" id="sf-admin"'+(f.admin?' checked':'')+'> 관리자</label><button class="btn" data-act="sfadd">등록</button></div></div>';
+  h+='<div class="card"><h3>직원 '+L.length+'명</h3>'+L.map(function(e){var s=S.staff[e],uid=userOfEmail(e),own=e===OWNER;return '<div class="srow"><div class="who"><b>'+esc(s.name||'(이름 없음)')+(own?' <span class="pill ok">원제님</span>':s.admin?' <span class="pill ok">관리자</span>':'')+(s.active===false?' <span class="pill">비활성</span>':'')+'</b><span class="small muted">'+esc(e)+' · '+(uid?'로그인 함':'아직 로그인 안 함')+'</span></div><div class="chips">'+TEAMS.map(function(t){return '<button class="chip" data-act="steam" data-e="'+esc(e)+'" data-v="'+t+'" aria-pressed="'+((s.teams||[]).indexOf(t)>=0)+'">'+t+'</button>'}).join('')+'</div>'+(own?'':'<button class="btn sm ghost" data-act="sadmin" data-e="'+esc(e)+'">'+(s.admin?'관리자 해제':'관리자로')+'</button><button class="btn sm ghost" data-act="sactive" data-e="'+esc(e)+'">'+(s.active===false?'다시 허용':'못 들어오게')+'</button>')+'</div>'}).join('')+'</div>';
+  h+='<div class="card" id="chadm"><h3>채널</h3><div class="row"><input class="inp" id="cf-name" placeholder="새 채널 이름 (예: 발주)" style="flex:1 1 160px"><input class="inp" id="cf-topic" placeholder="설명 (선택)" style="flex:2 1 200px"><button class="btn" data-act="cfadd">만들기</button></div>'+
+    S.channels.map(function(c){return '<div class="srow"><div class="who"><b># '+esc(c.name)+'</b><span class="small muted">'+esc(c.topic||'')+'</span></div><button class="btn sm ghost" data-act="cren" data-id="'+esc(c.id)+'">이름·설명 바꾸기</button>'+(S.cdel===c.id?'<button class="btn sm danger" data-act="cdel" data-id="'+esc(c.id)+'">정말 지우기</button>':'<button class="btn sm ghost" data-act="cdel" data-id="'+esc(c.id)+'">지우기</button>')+'</div>'}).join('')+'<p class="small muted" style="margin:0">채널을 지우면 목록에서 사라져요. 안의 메시지는 남아 있어서 필요하면 되살릴 수 있어요.</p></div>';
+  return h+'</div>'}
+function newdmHTML(){var L=Object.keys(S.staff).filter(function(e){return S.staff[e].active!==false}).sort(function(a,b){return String(S.staff[a].name).localeCompare(String(S.staff[b].name),'ko')});
+  return '<div class="page"><div class="card"><h3>누구와 대화할까요?</h3><div class="plist">'+L.map(function(e){var uid=userOfEmail(e);return '<button data-act="dmto" data-v="'+esc(uid)+'"'+(uid?'':' disabled')+'>'+(uid?av(uid):'<span class="av" style="background:#999">'+esc(String(S.staff[e].name||'?').slice(0,1))+'</span>')+'<span><b>'+esc(S.staff[e].name||e)+(uid===S.u.uid?' (나 · 메모용)':'')+'</b><br><span class="small muted">'+(uid?esc((S.staff[e].teams||[]).join(' · ')||''):'아직 앱에 로그인하지 않았어요')+'</span></span></button>'}).join('')+'</div></div></div>'}
+function adminAct(a,b){var e=b.getAttribute('data-e'),id=b.getAttribute('data-id'),v=b.getAttribute('data-v');if(!isAdmin())return;
+  if(a==='sfteam'){keepSf();var T=S.sf.teams,i=T.indexOf(v);i>=0?T.splice(i,1):T.push(v);render();return}
+  if(a==='sfadd'){keepSf();var f=S.sf,em=String(f.email||'').trim().toLowerCase();if(!f.name||!f.name.trim())return toast('이름을 적어 주세요.');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))return toast('Gmail 주소를 확인해 주세요.');if(S.staff[em])return toast('이미 등록된 Gmail이에요.');
+    db.collection('staff').doc(em).set({name:f.name.trim(),teams:TEAMS.filter(function(t){return f.teams.indexOf(t)>=0}),admin:!!f.admin,active:true,at:FV.serverTimestamp()}).then(function(){S.sf={teams:[]};toast(f.name.trim()+'님을 등록했어요');render()},function(x){toast(errMsg(x))});return}
+  if(a==='steam'){var s=S.staff[e],T2=(s.teams||[]).slice(),j=T2.indexOf(v);j>=0?T2.splice(j,1):T2.push(v);db.collection('staff').doc(e).update({teams:TEAMS.filter(function(t){return T2.indexOf(t)>=0})}).catch(function(x){toast(errMsg(x))});return}
+  if(a==='sadmin'){db.collection('staff').doc(e).update({admin:!S.staff[e].admin}).catch(function(x){toast(errMsg(x))});return}
+  if(a==='sactive'){var on=S.staff[e].active===false;db.collection('staff').doc(e).update({active:on}).then(function(){toast(on?'다시 들어올 수 있어요':'이제 이 계정은 못 들어와요')},function(x){toast(errMsg(x))});return}
+  if(a==='cfadd'){var n=(document.getElementById('cf-name').value||'').trim().replace(/^#/,''),tp=(document.getElementById('cf-topic').value||'').trim();if(!n)return toast('채널 이름을 적어 주세요.');if(S.channels.some(function(c){return c.name===n}))return toast('같은 이름의 채널이 있어요.');
+    db.collection('channels').add({name:n.slice(0,30),topic:tp.slice(0,80),ord:S.channels.length,by:S.u.uid,at:FV.serverTimestamp()}).then(function(){toast('#'+n+' 채널을 만들었어요')},function(x){toast(errMsg(x))});return}
+  if(a==='cren'){var c=chan(id),nn=prompt('채널 이름',c.name);if(nn==null)return;var nt=prompt('설명',c.topic||'');db.collection('channels').doc(id).update({name:(nn.trim()||c.name).replace(/^#/,'').slice(0,30),topic:(nt==null?c.topic:nt.trim()).slice(0,80)}).catch(function(x){toast(errMsg(x))});return}
+  if(a==='cdel'){if(S.cdel!==id){S.cdel=id;render();return}S.cdel=null;db.collection('channels').doc(id).delete().then(function(){if(S.view&&S.view.id===id)S.view={k:'admin'};toast('채널을 지웠어요')},function(x){toast(errMsg(x))})}}
+function keepSf(){var f=S.sf||(S.sf={teams:[]});['name','email'].forEach(function(k){var x=document.getElementById('sf-'+k);if(x)f[k]=x.value});var ad=document.getElementById('sf-admin');if(ad)f.admin=ad.checked}
+
+/* ================= @멘션 고르기 ================= */
+var MP={id:null,q:'',sel:0,list:[]};
+function mpUpdate(t){var pre=t.value.slice(0,t.selectionStart),m=pre.match(/@([^\s@]{0,20})$/),pop=document.getElementById(t.id+'-pop');if(!pop)return;
+  if(!m){pop.hidden=true;MP.id=null;return}var q=m[1];MP.id=t.id;MP.q=q;MP.list=Object.keys(S.users).filter(function(u){return u!==S.u.uid&&nameOf(u).indexOf(q)>=0}).sort(function(a,b){return nameOf(a).localeCompare(nameOf(b),'ko')}).slice(0,8);if('전체'.indexOf(q)===0&&S.view.k==='c')MP.list.push('*');
+  if(!MP.list.length){pop.hidden=true;MP.id=null;return}MP.sel=Math.min(MP.sel,MP.list.length-1);
+  pop.innerHTML=MP.list.map(function(u,i){return '<button type="button" data-act="mpick" data-v="'+esc(u)+'" class="'+(i===MP.sel?'sel':'')+'">'+(u==='*'?'<span class="av sm" style="background:var(--accent)">@</span><b>전체</b><span class="small muted">채널 모두에게</span>':av(u,1)+'<b>'+esc(nameOf(u))+'</b>')+'</button>'}).join('');pop.hidden=false}
+function mpPick(u){var t=document.getElementById(MP.id);if(!t)return;var pos=t.selectionStart,pre=t.value.slice(0,pos).replace(/@([^\s@]{0,20})$/,'@'+(u==='*'?'전체':nameOf(u))+' ');t.value=pre+t.value.slice(pos);t.setSelectionRange(pre.length,pre.length);t.focus();var pop=document.getElementById(MP.id+'-pop');if(pop)pop.hidden=true;MP.id=null;grow(t)}
+
+/* ================= 입력 · 클릭 ================= */
+document.addEventListener('input',function(ev){var t=ev.target;if(t.id==='ta'||t.id==='tta'){grow(t);mpUpdate(t)}});
+document.addEventListener('keydown',function(ev){var t=ev.target;
+  if((t.id==='ta'||t.id==='tta')&&MP.id===t.id){if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ev.preventDefault();MP.sel=(MP.sel+(ev.key==='ArrowDown'?1:-1)+MP.list.length)%MP.list.length;mpUpdate(t);return}if(ev.key==='Enter'||ev.key==='Tab'){ev.preventDefault();mpPick(MP.list[MP.sel]);return}if(ev.key==='Escape'){var p=document.getElementById(t.id+'-pop');if(p)p.hidden=true;MP.id=null;return}}
+  if((t.id==='ta'||t.id==='tta')&&ev.key==='Enter'&&!ev.shiftKey&&!ev.isComposing&&!narrow()){ev.preventDefault();var v=t.value;if(!v.trim())return;t.value='';grow(t);send(v,t.id==='tta');return}
+  if(t.id==='eta'){if(ev.key==='Escape'){S.edit=null;S.thread?renderThread():0;renderMsgs();return}if(ev.key==='Enter'&&!ev.shiftKey&&!ev.isComposing){ev.preventDefault();var m=t.closest('.m');saveEdit(m.getAttribute('data-id'),m.getAttribute('data-rid'),t.value)}}
+  if(ev.key==='Escape'&&S.emo){S.emo=null;renderMsgs();renderThread()}});
+document.addEventListener('click',function(ev){var b=ev.target.closest('[data-act]');
+  if(S.emo&&(!b||['react','emo'].indexOf(b.getAttribute('data-act'))<0)){S.emo=null;renderMsgs();renderThread()}
+  if(!b&&narrow()){var mm=ev.target.closest('.m');if(mm&&!ev.target.closest('a')){var k=mm.getAttribute('data-rid')||mm.getAttribute('data-id');S.act=S.act===k?null:k;renderMsgs();renderThread();return}}
+  if(!b||b.disabled)return;var a=b.getAttribute('data-act'),id=b.getAttribute('data-id'),rid=b.getAttribute('data-rid'),v=b.getAttribute('data-v');
+  if(a==='login')return login();
+  if(a==='logout'){off();return auth.signOut()}
+  if(a==='open')return openConv({k:b.getAttribute('data-k'),id:id});
+  if(a==='back'){S.pane='list';if(narrow())S.view=S.view&&S.view.k!=='c'&&S.view.k!=='d'?null:S.view;render();return}
+  if(a==='newdm'){if(CUN){CUN();CUN=null}closeThread(true);S.view={k:'newdm'};S.pane='conv';render();return}
+  if(a==='dmto')return openDM(v);
+  if(a==='admin'){if(CUN){CUN();CUN=null}closeThread(true);S.view={k:'admin'};S.pane='conv';render();if(v==='ch')setTimeout(function(){var c=document.getElementById('chadm');if(c)c.scrollIntoView()},30);return}
+  if(a==='send'){var t=document.getElementById(v);if(!t||!t.value.trim())return;var val=t.value;t.value='';grow(t);send(val,v==='tta');t.focus();return}
+  if(a==='mpick')return mpPick(v);
+  if(a==='thread')return openThread(id);
+  if(a==='tclose')return closeThread();
+  if(a==='more'){S.lim+=60;S.keepTop=true;listen();return}
+  if(a==='emo'){ev.stopPropagation();S.emo=S.emo===(rid||id)?null:(rid||id);renderMsgs();renderThread();return}
+  if(a==='react'){S.emo=null;react(id,rid,b.getAttribute('data-k'));return}
+  if(a==='edit'){S.edit=rid||id;rid?renderThread():renderMsgs();setTimeout(function(){var e=document.getElementById('eta');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length)}},20);return}
+  if(a==='edcancel'){S.edit=null;renderMsgs();renderThread();return}
+  if(a==='edsave'){var et=document.getElementById('eta');if(et)saveEdit(id,rid,et.value);return}
+  if(a==='del'){if(S.delAsk!==(rid||id)){S.delAsk=rid||id;toast('한 번 더 누르면 지워져요');setTimeout(function(){S.delAsk=null},3000);return}S.delAsk=null;delMsg(id,rid);return}
+  adminAct(a,b)});
+document.addEventListener('scroll',function(ev){if(ev.target&&ev.target.id==='msgs'&&ev.target.scrollTop<40&&S.more&&!S.loadingMore){S.loadingMore=true;S.lim+=60;S.keepTop=true;listen();setTimeout(function(){S.loadingMore=false},800)}},true);
+var rzT,wasN=narrow();window.addEventListener('resize',function(){clearTimeout(rzT);rzT=setTimeout(function(){if(narrow()!==wasN){wasN=narrow();render()}},150)});
+})();
+</script>
+</body>
+</html>

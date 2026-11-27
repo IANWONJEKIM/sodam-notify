@@ -1,0 +1,77 @@
+rules_version = '2';
+// 소담상회 올인원 앱 · Firestore 보안 규칙
+// - 등록된 직원(staff/{Gmail})만 들어올 수 있어요. 원제님 계정은 처음부터 관리자예요.
+// - DM은 대화에 들어 있는 두 사람만 읽고 쓸 수 있어요 (관리자도 못 봐요).
+// - 안 읽음 기록(users/{uid}/reads)은 본인만 봐요.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null && request.auth.token.email_verified == true; }
+    function em() { return request.auth.token.email.lower(); }
+    function owner() { return signed() && em() == 'wonjea47@gmail.com'; }
+    function staffPath() { return /databases/$(database)/documents/staff/$(em()); }
+    function isStaff() { return owner() || (signed() && exists(staffPath()) && get(staffPath()).data.active != false); }
+    function isAdmin() { return owner() || (isStaff() && get(staffPath()).data.admin == true); }
+    function onlyKeys(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function mine() { return request.resource.data.uid == request.auth.uid; }
+
+    // 직원 명단: 누구나(직원) 보기 · 관리자만 고치기
+    match /staff/{email} {
+      allow read: if isStaff() || (signed() && email == em());
+      allow write: if isAdmin();
+    }
+
+    // 프로필: 본인 것만 쓰기
+    match /users/{uid} {
+      allow read: if isStaff();
+      allow create, update: if isStaff() && request.auth.uid == uid && request.resource.data.email == em();
+      match /reads/{key} {
+        allow read, write: if signed() && request.auth.uid == uid;
+      }
+    }
+
+    // 채널: 만들기·이름 바꾸기·지우기는 관리자, 마지막 메시지 표시는 누구나
+    match /channels/{cid} {
+      allow read: if isStaff();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isStaff() && onlyKeys(['last', 'lastAt']));
+      match /msgs/{mid} {
+        allow read: if isStaff();
+        allow create: if isStaff() && mine();
+        allow update: if isStaff() && (resource.data.uid == request.auth.uid || onlyKeys(['re', 'rc', 'lastReplyAt', 'ru']));
+        allow delete: if isAdmin() || (isStaff() && resource.data.uid == request.auth.uid);
+        match /replies/{rid} {
+          allow read: if isStaff();
+          allow create: if isStaff() && mine();
+          allow update: if isStaff() && (resource.data.uid == request.auth.uid || onlyKeys(['re']));
+          allow delete: if isAdmin() || (isStaff() && resource.data.uid == request.auth.uid);
+        }
+      }
+    }
+
+    // DM: 대화방 id = 두 사람 uid를 작은 순서로 '_'로 이은 것. 두 사람만 읽고 써요
+    match /dms/{did} {
+      function dmMembers() { return get(/databases/$(database)/documents/dms/$(did)).data.m; }
+      function inDm() { return isStaff() && request.auth.uid in dmMembers(); }
+      allow get: if isStaff() && (resource == null || request.auth.uid in resource.data.m);
+      allow list: if isStaff() && request.auth.uid in resource.data.m;
+      allow create: if isStaff()
+        && request.resource.data.m.size() == 2
+        && request.auth.uid in request.resource.data.m
+        && request.resource.data.m[0] < request.resource.data.m[1]
+        && did == request.resource.data.m[0] + '_' + request.resource.data.m[1];
+      allow update: if isStaff() && request.auth.uid in resource.data.m && onlyKeys(['last', 'lastAt']);
+      match /msgs/{mid} {
+        allow read: if inDm();
+        allow create: if inDm() && mine();
+        allow update: if inDm() && (resource.data.uid == request.auth.uid || onlyKeys(['re', 'rc', 'lastReplyAt', 'ru']));
+        allow delete: if inDm() && resource.data.uid == request.auth.uid;
+        match /replies/{rid} {
+          allow read: if inDm();
+          allow create: if inDm() && mine();
+          allow update: if inDm() && (resource.data.uid == request.auth.uid || onlyKeys(['re']));
+          allow delete: if inDm() && resource.data.uid == request.auth.uid;
+        }
+      }
+    }
+  }
+}
