@@ -5,6 +5,7 @@ import { nameOf, convRef, S } from './state.js';
 import { tkRef } from './tasks.js';
 import { renderMsgs, renderThread } from './ui/messages.js';
 import { findMsg, actMention, actReply, actReact } from './msgact.js';
+import { touchThread } from './threads.js';
 
 function mentions(text) {
   var out = [];
@@ -45,6 +46,7 @@ function send(text, which) {
           actMention(m.men, mid, r.id, text);
           actReply(parent, mid, r.id, text);
         }
+        touchThread(v.k, v.id, mid);
         return pr.update({ rc: FV.increment(1), lastReplyAt: FV.serverTimestamp(), ru: FV.arrayUnion(S.u.uid) });
       })
       .catch(function (e) {

@@ -1,5 +1,6 @@
 /* 메시지 목록 · 스레드 그리기 */
-import { esc, ms, hm, dayKey, dayLabel, toast, EMO } from '../util.js';
+import { esc, ms, hm, dayKey, dayLabel, toast, EMO, EMOM } from '../util.js';
+import { emoOf } from './emoji.js';
 import { isAdmin, nameOf, narrow, S } from '../state.js';
 import { av, fmt, compHTML } from '../ui/common.js';
 import { convTitle } from '../ui/layout.js';
@@ -49,10 +50,22 @@ function msgHTML(x, prev, rid, root) {
       : (x.text || !x.fwd
           ? '<div class="tx">' + fmt(x.text) + (x.ed ? ' <span class="ed">(수정됨)</span>' : '') + '</div>'
           : '') + (x.fwd ? fwdHTML(x.fwd) : '');
+  /* 반응: 예전 6개 먼저, 그 밖의 이모지는 그 뒤에 */
   var re = x.re || {},
-    rk = EMO.filter(function (e) {
-      return re[e[0]] && re[e[0]].length;
-    });
+    rk = EMO.map(function (e) {
+      return e[0];
+    })
+      .concat(
+        Object.keys(re).filter(function (k) {
+          return !EMOM[k];
+        }),
+      )
+      .filter(function (k) {
+        return re[k] && re[k].length;
+      })
+      .map(function (k) {
+        return [k, emoOf(k)];
+      });
   if (rk.length)
     h +=
       '<div class="rx">' +
@@ -76,6 +89,11 @@ function msgHTML(x, prev, rid, root) {
           );
         })
         .join('') +
+      (x.del
+        ? ''
+        : '<button class="rxadd" data-act="epre"' +
+          ids +
+          ' title="반응 더하기" aria-label="반응 더하기">😀+</button>') +
       '</div>';
   if (!rid && !root && x.rc > 0)
     h +=
@@ -116,7 +134,9 @@ function msgHTML(x, prev, rid, root) {
       EMO.map(function (e) {
         return '<button data-act="react" data-k="' + e[0] + '"' + ids + '>' + e[1] + '</button>';
       }).join('') +
-      '</div>';
+      '<button data-act="epre"' +
+      ids +
+      ' title="다른 이모지" aria-label="다른 이모지" class="more">➕</button></div>';
   return h + '</div></div>';
 }
 /* ⋯ 메뉴 · 휴대폰 아래 메뉴에 같이 쓰는 항목 */

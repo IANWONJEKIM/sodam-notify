@@ -7,6 +7,7 @@ import { listenTasks } from './tasks.js';
 import { renderMsgs, renderThread } from './ui/messages.js';
 import { render } from './ui/render.js';
 import { listenPins, stopPins } from './msgact.js';
+import { seenThread } from './threads.js';
 
 function stopConv() {
   if (LS.CUN) {
@@ -101,6 +102,7 @@ function openThread(mid) {
   }
   S.task = null;
   S.thread = mid;
+  seenThread(S.view.k, S.view.id, mid);
   S.replies = [];
   S.pane = 'thread';
   var v = S.view;
@@ -117,6 +119,8 @@ function openThread(mid) {
           o.id = d.id;
           return o;
         });
+        /* 열어 둔 채로 새 답글이 와도 '본 것'으로 */
+        if (!document.hidden && S.replies.length) seenThread(v.k, v.id, mid);
         renderThread();
       },
       function (e) {

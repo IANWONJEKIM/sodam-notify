@@ -15,6 +15,7 @@
     "dev:phone": "vite --mode emu --host"
   },
   "dependencies": {
+    "emojibase-data": "^18.0.0",
     "firebase": "^10.12.2"
   },
   "devDependencies": {

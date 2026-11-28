@@ -1502,3 +1502,170 @@ button.trow:hover,
 .emuas .btn {
   min-height: 44px;
 }
+/* ── 글 꾸미기 보여 주기 ── */
+.tx ul,
+.tx ol {
+  margin: 2px 0;
+  padding-left: 22px;
+  white-space: normal;
+}
+.tx li {
+  white-space: pre-wrap;
+}
+.tx blockquote {
+  margin: 2px 0;
+  padding: 0 0 0 10px;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+.tx code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 4px;
+  color: var(--bad);
+}
+.tx pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 4px 0;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+/* 서식 막대 · 입력창 버튼 */
+.fbar {
+  display: flex;
+  gap: 2px;
+  padding: 0 4px 4px;
+  overflow-x: auto;
+}
+.fbar button {
+  border: 0;
+  background: none;
+  min-width: 34px;
+  height: 30px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  flex: none;
+}
+.fbar button:hover {
+  background: var(--soft);
+  color: var(--ink);
+}
+.cbox .cbt {
+  border: 0;
+  background: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 18px;
+  flex: none;
+  color: var(--muted);
+}
+.cbox .cbt:hover,
+.cbox .cbt.on {
+  background: var(--soft);
+  color: var(--ink);
+}
+.cbox .cbt[data-act='fbar'] {
+  font-size: 14px;
+  font-weight: 700;
+}
+/* 반응 더하기 */
+.rx .rxadd {
+  opacity: 0;
+  font-size: 12px;
+}
+.m:hover .rx .rxadd {
+  opacity: 1;
+}
+.emo .more {
+  font-size: 16px;
+}
+/* 이모지 고르기 창 */
+.dlg.ep {
+  height: min(520px, 80vh);
+}
+.ep-tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  flex: none;
+}
+.ep-tabs button {
+  border: 0;
+  background: none;
+  font-size: 20px;
+  min-width: 38px;
+  height: 36px;
+  border-radius: 8px;
+  flex: none;
+}
+.ep-tabs button:hover {
+  background: var(--soft);
+}
+.ep-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.ep-grid h4 {
+  margin: 8px 2px 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  padding: 2px 0;
+}
+.ep-cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+}
+.ep-cells button {
+  border: 0;
+  background: none;
+  font-size: 24px;
+  height: 42px;
+  border-radius: 8px;
+  line-height: 1;
+}
+.ep-cells button:hover {
+  background: var(--soft);
+}
+.ep-load {
+  padding: 20px 4px;
+  margin: 0;
+}
+@media (max-width: 899px) {
+  .rx .rxadd {
+    opacity: 1;
+  }
+  .dlg.ep {
+    height: 70vh;
+  }
+  .ep-cells button {
+    height: 46px;
+    font-size: 26px;
+  }
+  .fbar button {
+    min-width: 40px;
+    height: 36px;
+  }
+}
+.fbar,
+.ep-tabs {
+  scrollbar-width: none;
+}
+.fbar::-webkit-scrollbar,
+.ep-tabs::-webkit-scrollbar {
+  display: none;
+}

@@ -8,7 +8,7 @@ import { login } from './auth.js';
 import { stopConv, openConv, listen, markRead, openThread, closeThread, openDM, openGroup } from './conv.js';
 import { tk, tkRef, openTask, tkUp, tkAdd, tkSt } from './tasks.js';
 import { send, react, delMsg, saveEdit } from './messages.js';
-import { grow } from './ui/common.js';
+import { grow, applyFmt, insertAt } from './ui/common.js';
 import { renderMsgs, renderThread } from './ui/messages.js';
 import { renderCmts } from './ui/board.js';
 import { render } from './ui/render.js';
@@ -28,6 +28,13 @@ import {
   actSeen,
 } from './msgact.js';
 import { actSeenAt } from './ui/tabs.js';
+import { loadEmoji, reKey, hexToEmo, remember } from './ui/emoji.js';
+
+/* 서식 막대·이모지 버튼을 눌러도 입력창 커서(고른 글)가 그대로 있게 */
+document.addEventListener('mousedown', function (ev) {
+  if (ev.target.closest && ev.target.closest('.fbar button, [data-act="emopick"], [data-act="fbar"]'))
+    ev.preventDefault();
+});
 
 function isComp(id) {
   return id === 'ta' || id === 'tta' || id === 'tkc';
@@ -37,6 +44,10 @@ document.addEventListener('input', function (ev) {
   if (isComp(t.id)) {
     grow(t);
     mpUpdate(t);
+  }
+  if (t.id === 'ep-q' && S.ep) {
+    S.ep.q = t.value;
+    renderOverlay();
   }
   if (t.id === 'fw-q' && S.fwd) {
     S.fwd.q = t.value;
@@ -121,8 +132,8 @@ document.addEventListener('keydown', function (ev) {
       saveEdit(m.getAttribute('data-id'), m.getAttribute('data-rid'), t.value);
     }
   }
-  if (ev.key === 'Escape' && (S.sheet || S.fwd || S.menu)) {
-    S.sheet = S.fwd = S.menu = null;
+  if (ev.key === 'Escape' && (S.sheet || S.fwd || S.menu || S.ep)) {
+    S.sheet = S.fwd = S.menu = S.ep = null;
     renderOverlay();
     renderMsgs();
     renderThread();
@@ -449,6 +460,13 @@ function msgActs(a, b, id, rid, v) {
     render();
     return true;
   }
+  if (a === 'gothread') {
+    var tp = String(v || '').split('/');
+    S.sheet = S.fwd = null;
+    jump({ k: tp[0], id: tp[1], mid: tp[2], rid: '' });
+    if (S.view && S.view.id === tp[1]) openThread(tp[2]);
+    return true;
+  }
   if (a === 'gomsg') {
     var p = String(v || '').split('/');
     S.sheet = S.fwd = null;
@@ -504,8 +522,66 @@ function msgActs(a, b, id, rid, v) {
     renderOverlay();
     return true;
   }
+  if (a === 'fbar') {
+    /* 다시 그리지 않고 막대만 열고 닫아요 (키보드가 내려가지 않게) */
+    S.fbar = !S.fbar;
+    var cp = b.closest('.comp'),
+      fb = cp && cp.querySelector('.fbar');
+    if (fb) fb.hidden = !S.fbar;
+    b.classList.toggle('on', !!S.fbar);
+    b.setAttribute('aria-pressed', !!S.fbar);
+    return true;
+  }
+  if (a === 'fmt') {
+    var fta = document.getElementById(b.getAttribute('data-t'));
+    if (fta) applyFmt(fta, v);
+    return true;
+  }
+  if (a === 'emopick' || a === 'epre') {
+    var eta = a === 'emopick' && document.getElementById(v);
+    S.emo = S.menu = S.sheet = null;
+    S.ep =
+      a === 'emopick'
+        ? { mode: 'ins', ta: v, pos: eta ? eta.selectionStart : null, q: '' }
+        : { mode: 're', id: id, rid: rid || '', q: '' };
+    renderMsgs();
+    renderThread();
+    renderOverlay();
+    loadEmoji().then(function () {
+      if (S.ep) renderOverlay();
+    });
+    setTimeout(function () {
+      var q = document.getElementById('ep-q');
+      if (q && !narrow()) q.focus();
+    }, 30);
+    return true;
+  }
+  if (a === 'epick') {
+    var ep = S.ep;
+    if (!ep) return true;
+    S.ep = null;
+    renderOverlay();
+    remember(v);
+    if (ep.mode === 're') react(ep.id, ep.rid, reKey(v));
+    else {
+      var ita = document.getElementById(ep.ta);
+      if (ita) insertAt(ita, hexToEmo(v), ep.pos);
+    }
+    return true;
+  }
+  if (a === 'epgo') {
+    if (S.ep && S.ep.q) {
+      S.ep.q = '';
+      var eq = document.getElementById('ep-q');
+      if (eq) eq.value = '';
+      renderOverlay();
+    }
+    var sec = document.getElementById('epg-' + v);
+    if (sec) sec.scrollIntoView({ block: 'start' });
+    return true;
+  }
   if (a === 'ovclose') {
-    S.sheet = S.fwd = null;
+    S.sheet = S.fwd = S.ep = null;
     renderOverlay();
     return true;
   }

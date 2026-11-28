@@ -4,6 +4,7 @@ import { nameOf, S } from '../state.js';
 import { findMsg, isSaved, fwdTargets } from '../msgact.js';
 import { menuItems } from '../ui/messages.js';
 import { fmt } from '../ui/common.js';
+import { pickerHTML, gridHTML } from './emoji.js';
 
 function ovEl() {
   var o = document.getElementById('ov');
@@ -17,6 +18,14 @@ function ovEl() {
 function renderOverlay() {
   var o = ovEl(),
     h = '';
+  if (S.ep) {
+    /* 이모지 창: 떠 있으면 검색칸은 두고 목록만 바꿔요 */
+    o.className = 'ov on';
+    var g = o.querySelector('#ep-grid');
+    if (g && o.querySelector('#ep-q')) g.innerHTML = gridHTML();
+    else o.innerHTML = pickerHTML();
+    return;
+  }
   if (S.fwd) h = fwdHTML();
   else if (S.sheet) h = sheetHTML();
   o.className = h ? 'ov on' + (S.fwd ? ' fw' : '') : 'ov';
@@ -49,7 +58,9 @@ function sheetHTML() {
         '<button data-act="react" data-k="' + e[0] + '"' + ids + ' aria-label="' + e[0] + '">' + e[1] + '</button>'
       );
     }).join('') +
-    '</div><div class="sheet-list">' +
+    '<button data-act="epre"' +
+    ids +
+    ' aria-label="다른 이모지">➕</button></div><div class="sheet-list">' +
     (sh.rid ? '' : '<button data-act="thread" data-id="' + esc(sh.id) + '"><span>💬</span>답글 달기</button>') +
     '<button data-act="save"' +
     ids +

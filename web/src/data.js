@@ -5,6 +5,7 @@ import { isAdmin, chan, vis, joined, soon, narrow, S, UN } from './state.js';
 import { stopConv, openConv } from './conv.js';
 import { autoJoin } from './chmem.js';
 import { readHash, jump } from './msgact.js';
+import { listenThreads, threadsFromActs } from './threads.js';
 import { render } from './ui/render.js';
 
 function start() {
@@ -16,6 +17,7 @@ function start() {
   S.saved = [];
   S.acts = [];
   S.tab = 'home';
+  S.thAdded = {};
   /* 메시지 링크로 들어왔으면 목록이 오면 그 메시지로 가요 */
   S.pendJump = readHash();
   UN.push(
@@ -166,6 +168,7 @@ function start() {
         function () {},
       ),
   );
+  listenThreads(UN);
   /* 나중에 보기 · 내 활동 (본인 것만) */
   var me = db.collection('users').doc(S.u.uid);
   UN.push(
@@ -197,6 +200,7 @@ function start() {
             o.id = d.id;
             return o;
           });
+          threadsFromActs();
           soon();
         },
         function () {},

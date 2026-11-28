@@ -1,10 +1,12 @@
 /* 탭: 홈 · DM · 내 활동 · 나중에 보기
    PC는 맨 왼쪽 좁은 세로 막대, 휴대폰은 목록 화면 아래 탭 막대 */
 import { db } from '../firebase.js';
-import { esc, ms, hm, dayKey, dayLabel, EMOM } from '../util.js';
+import { esc, ms, hm, dayKey, dayLabel } from '../util.js';
 import { nameOf, dmOthers, dmName, joined, chan, dm, vis, S } from '../state.js';
 import { ucount, unread, cntHTML, UC } from '../unread.js';
 import { av, gav } from '../ui/common.js';
+import { emoOf } from './emoji.js';
+import { threadList, threadNew } from '../threads.js';
 
 var TABS = [
   ['home', '홈', '🏠'],
@@ -130,6 +132,7 @@ function actTabHTML() {
   var h =
     '<div class="tabhd"><h2>내 활동</h2></div><div class="chips tchips">' +
     [
+      ['th', '🧵 스레드' + (threadNew() ? ' ' + threadNew() : '')],
       ['all', '전체'],
       ['men', '@ 멘션'],
       ['rp', '💬 답글'],
@@ -148,6 +151,7 @@ function actTabHTML() {
       })
       .join('') +
     '</div><div class="tlist">';
+  if (f === 'th') return h + threadsHTML() + '</div>';
   if (!L.length)
     h += '<p class="tempty">아직 활동이 없어요.<br>누가 나를 @부르거나, 내 글에 반응·답글을 달면 여기 모여요.</p>';
   L.forEach(function (a) {
@@ -157,7 +161,7 @@ function actTabHTML() {
           ? '님이 나를 불렀어요'
           : a.t === 'rp'
             ? '님이 내 글에 답글을 달았어요'
-            : '님이 ' + (EMOM[a.emo] || '') + ' 반응했어요';
+            : '님이 ' + emoOf(a.emo) + ' 반응했어요';
     h +=
       '<button class="trow ac' +
       (nw ? ' un' : '') +
@@ -183,6 +187,46 @@ function actTabHTML() {
   return h + '</div>';
 }
 
+/* 내가 참여한 스레드: 최근 답글 순, 새 답글은 굵게 */
+function threadsHTML() {
+  var L = threadList();
+  if (!L.length)
+    return '<p class="tempty">참여한 스레드가 없어요.<br>답글을 달거나, 내 글에 답글이 달리면 여기 모여요.</p>';
+  return L.map(function (x) {
+    var t = x.t,
+      r = x.r || {};
+    return (
+      '<button class="trow ac' +
+      (x.nw ? ' un' : '') +
+      '" data-act="gothread" data-v="' +
+      esc([t.k, t.cid, t.mid].join('/')) +
+      '">' +
+      (r.uid ? av(r.uid) : '<span class="av"></span>') +
+      '<span class="tb"><span class="t1"><span><b>' +
+      esc(whereName(t.k, t.cid)) +
+      '</b></span><time>' +
+      when(r.lastReplyAt || t.at) +
+      '</time></span><span class="t2">' +
+      esc(r.uid ? nameOf(r.uid) + ': ' : '') +
+      esc(String(r.text || (r.del ? '삭제된 메시지' : '…')).slice(0, 80)) +
+      '</span><span class="t3">답글 ' +
+      (r.rc || 0) +
+      '개' +
+      (r.ru && r.ru.length
+        ? ' · ' +
+          r.ru
+            .slice(0, 3)
+            .map(function (u) {
+              return esc(nameOf(u));
+            })
+            .join(', ')
+        : '') +
+      '</span></span>' +
+      (x.nw ? '<i class="ndot" aria-label="새 답글"></i>' : '') +
+      '</button>'
+    );
+  }).join('');
+}
 /* 나중에 보기: 진행 중 / 완료 */
 function savedTabHTML() {
   var done = S.svf === 'done',

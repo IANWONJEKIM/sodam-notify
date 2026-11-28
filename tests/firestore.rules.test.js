@@ -114,6 +114,12 @@ describe('공개 채널', () => {
     await assertFails(updateDoc(doc(db, 'channels', 'pub', 'msgs', 'm1'), { text: '바꿈' }));
     await assertFails(deleteDoc(doc(db, 'channels', 'pub', 'msgs', 'm1')));
   });
+  it('반응은 아무 이모지나 (예전 6개 + e코드), 그래도 남의 글 내용은 못 고쳐요', async () => {
+    const ref = doc(as(P.a), 'channels', 'pub', 'msgs', 'm1');
+    await assertSucceeds(updateDoc(ref, { 're.e1F44F': arrayUnion(P.a.uid) }));
+    await assertSucceeds(updateDoc(ref, { 're.e1F44F_1F3FB': arrayUnion(P.a.uid) }));
+    await assertFails(updateDoc(ref, { 're.e1F44F': arrayUnion(P.a.uid), text: '바꿈' }));
+  });
   it('관리자는 남의 메시지를 지울 수 있어요', async () => {
     await assertSucceeds(deleteDoc(doc(as(P.boss), 'channels', 'pub', 'msgs', 'm1')));
   });
@@ -269,6 +275,11 @@ describe('고정 · 나중에 보기', () => {
     await assertSucceeds(
       updateDoc(doc(as(P.b), 'dms', 'uA_uB', 'msgs', 'm1'), { pinAt: serverTimestamp(), pinBy: P.b.uid }),
     );
+  });
+  it('내 스레드 목록은 본인만 보고 써요', async () => {
+    await assertSucceeds(setDoc(doc(as(P.a), 'users', P.a.uid, 'threads', 'c_pub_m1'), { mid: 'm1' }));
+    await assertFails(getDoc(doc(as(P.b), 'users', P.a.uid, 'threads', 'c_pub_m1')));
+    await assertFails(setDoc(doc(as(P.b), 'users', P.a.uid, 'threads', 'x'), { mid: 'm1' }));
   });
   it('저장 목록은 본인만 보고 써요', async () => {
     await assertSucceeds(setDoc(doc(as(P.a), 'users', P.a.uid, 'saved', 'c_pub_m1'), { mid: 'm1' }));
