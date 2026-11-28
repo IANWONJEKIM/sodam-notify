@@ -7,9 +7,12 @@ import { sideHTML, mainHTML } from '../ui/layout.js';
 import { taskHTML, renderCmts } from '../ui/board.js';
 import { railHTML, botHTML, isTool, toolHTML } from '../ui/tabs.js';
 import { renderOverlay } from '../ui/overlay.js';
+import { profHTML } from './profile.js';
+import { applyPrefs } from '../people.js';
 
 function render() {
   if (!S.u || !S.me) return;
+  applyPrefs();
   var app = document.getElementById('app'),
     keep = snapComposer();
   if (!narrow() && S.pane === 'list' && S.view) S.pane = 'conv';
@@ -26,7 +29,7 @@ function render() {
     return;
   }
   var side = sideHTML(),
-    side2 = S.thread ? threadHTML() : S.task ? taskHTML() : '';
+    side2 = S.thread ? threadHTML() : S.task ? taskHTML() : S.prof ? profHTML(S.prof) : '';
   app.innerHTML =
     '<div class="shell' +
     (side2 && !narrow() ? ' thr' : '') +
@@ -76,6 +79,9 @@ var CK = [
   'cf-end',
   'br-q',
   'fw-note',
+  'pf-dname',
+  'pf-title',
+  'pf-phone',
 ];
 function snapComposer() {
   var o = { __k: S.lastVk };

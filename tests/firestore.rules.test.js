@@ -93,6 +93,24 @@ describe('프로필 · 읽음 기록', () => {
     await assertFails(setDoc(doc(as(P.b), 'users', P.b.uid), { email: P.a.email, name: 'B' }));
     await assertFails(setDoc(doc(as(P.b), 'users', P.a.uid), { email: P.b.email, name: '가짜' }));
   });
+  it('프로필·상태·설정은 본인만, 정해진 칸만 고쳐요', async () => {
+    const me = doc(as(P.a), 'users', P.a.uid);
+    await assertSucceeds(
+      updateDoc(me, {
+        dname: '에이',
+        title: 'MD 매니저',
+        phone: '010-0000-0000',
+        st: { e: '🏖', t: '휴무', until: 1 },
+        on: serverTimestamp(),
+        prefs: { theme: 'dark' },
+      }),
+    );
+    await assertSucceeds(updateDoc(me, { st: null }));
+    await assertFails(updateDoc(me, { admin: true }));
+    await assertFails(updateDoc(me, { dname: 'x'.repeat(21) }));
+    await assertFails(updateDoc(me, { st: { e: '🏖', t: '휴무', hack: 1 } }));
+    await assertFails(updateDoc(doc(as(P.b), 'users', P.a.uid), { st: { e: '😈', t: '남의 상태' } }));
+  });
   it('읽음 기록은 본인만 봐요', async () => {
     await assertSucceeds(getDoc(doc(as(P.a), 'users', P.a.uid, 'reads', 'c_pub')));
     await assertFails(getDoc(doc(as(P.b), 'users', P.a.uid, 'reads', 'c_pub')));

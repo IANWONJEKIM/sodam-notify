@@ -1,6 +1,7 @@
 /* 메시지 목록 · 스레드 그리기 */
 import { esc, ms, hm, dayKey, dayLabel, toast, EMO, EMOM } from '../util.js';
 import { emoOf } from './emoji.js';
+import { stBadge } from '../people.js';
 import { isAdmin, nameOf, narrow, S } from '../state.js';
 import { av, fmt, compHTML } from '../ui/common.js';
 import { convTitle } from '../ui/layout.js';
@@ -34,9 +35,25 @@ function msgHTML(x, prev, rid, root) {
         (sv ? '<span class="sv">🔖 나중에 보기</span>' : '') +
         '</div>'
       : '') +
+    '<button class="avb" data-act="prof" data-v="' +
+    esc(x.uid) +
+    '" aria-label="' +
+    esc(nameOf(x.uid)) +
+    ' 프로필">' +
     av(x.uid) +
+    '</button>' +
     '<div>';
-  if (!cont) h += '<div class="hd"><b>' + esc(nameOf(x.uid)) + '</b><time>' + hm(x.at) + '</time></div>';
+  if (!cont)
+    h +=
+      '<div class="hd"><button class="nmb" data-act="prof" data-v="' +
+      esc(x.uid) +
+      '">' +
+      esc(nameOf(x.uid)) +
+      '</button>' +
+      stBadge(x.uid) +
+      '<time>' +
+      hm(x.at) +
+      '</time></div>';
   if (S.edit === (rid || x.id))
     h +=
       '<div class="cbox" style="margin:4px 0"><textarea id="eta" rows="2">' +

@@ -101,6 +101,7 @@ function openThread(mid) {
     LS.TCUN = null;
   }
   S.task = null;
+  S.prof = null;
   S.thread = mid;
   seenThread(S.view.k, S.view.id, mid);
   S.replies = [];
@@ -145,8 +146,9 @@ function closeThread(silent) {
   S.thread = null;
   S.replies = [];
   S.task = null;
+  S.prof = null;
   S.tcm = [];
-  if (S.pane === 'thread') S.pane = 'conv';
+  if (S.pane === 'thread') S.pane = S.view ? 'conv' : 'list';
   if (!silent) render();
 }
 function openDM(uid) {

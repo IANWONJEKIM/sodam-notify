@@ -1,5 +1,5 @@
 /* 입력 · 클릭 */
-import { auth, FV } from './firebase.js';
+import { auth, db, FV } from './firebase.js';
 import { toast, errMsg } from './util.js';
 import { off, isAdmin, chan, narrow, S } from './state.js';
 import { cjoin, cleave } from './chmem.js';
@@ -29,6 +29,7 @@ import {
 } from './msgact.js';
 import { actSeenAt } from './ui/tabs.js';
 import { loadEmoji, reKey, hexToEmo, remember } from './ui/emoji.js';
+import { ST_PRESET, stOf, saveStatus, saveProfile, setPref, prefs } from './people.js';
 
 /* 서식 막대·이모지 버튼을 눌러도 입력창 커서(고른 글)가 그대로 있게 */
 document.addEventListener('mousedown', function (ev) {
@@ -94,7 +95,10 @@ document.addEventListener('keydown', function (ev) {
       return;
     }
   }
-  if (isComp(t.id) && ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && !narrow()) {
+  /* 보내기 키: 설정이 'Enter로 보내기'면 Enter, '줄 바꿈'이면 Ctrl/⌘+Enter */
+  var nl = prefs().enter === 'newline',
+    sendKey = nl ? ev.ctrlKey || ev.metaKey : !ev.shiftKey;
+  if (isComp(t.id) && ev.key === 'Enter' && sendKey && !ev.isComposing && !narrow()) {
     ev.preventDefault();
     var v = t.value;
     if (!v.trim()) return;
@@ -132,8 +136,8 @@ document.addEventListener('keydown', function (ev) {
       saveEdit(m.getAttribute('data-id'), m.getAttribute('data-rid'), t.value);
     }
   }
-  if (ev.key === 'Escape' && (S.sheet || S.fwd || S.menu || S.ep)) {
-    S.sheet = S.fwd = S.menu = S.ep = null;
+  if (ev.key === 'Escape' && (S.sheet || S.fwd || S.menu || S.ep || S.stp || S.mem)) {
+    S.sheet = S.fwd = S.menu = S.ep = S.stp = S.mem = null;
     renderOverlay();
     renderMsgs();
     renderThread();
@@ -172,6 +176,8 @@ document.addEventListener('click', function (ev) {
   if (a === 'login') return login();
   if (a === 'emuas' && window.__as) return window.__as(v, b.textContent.replace(/ \(.*\)$/, ''));
   if (a === 'logout') {
+    S.mem = null;
+    renderOverlay();
     off();
     return auth.signOut();
   }
@@ -460,6 +466,7 @@ function msgActs(a, b, id, rid, v) {
     render();
     return true;
   }
+  if (peopleActs(a, b, id, v)) return true;
   if (a === 'cal') {
     stopConv();
     S.view = { k: 'cal' };
@@ -569,7 +576,11 @@ function msgActs(a, b, id, rid, v) {
     S.ep = null;
     renderOverlay();
     remember(v);
-    if (ep.mode === 're') react(ep.id, ep.rid, reKey(v));
+    if (ep.mode === 'st' && S.stp) {
+      S.stp.e = hexToEmo(v);
+      S.stp.redraw = true;
+      renderOverlay();
+    } else if (ep.mode === 're') react(ep.id, ep.rid, reKey(v));
     else {
       var ita = document.getElementById(ep.ta);
       if (ita) insertAt(ita, hexToEmo(v), ep.pos);
@@ -588,7 +599,7 @@ function msgActs(a, b, id, rid, v) {
     return true;
   }
   if (a === 'ovclose') {
-    S.sheet = S.fwd = S.ep = null;
+    S.sheet = S.fwd = S.ep = S.stp = S.mem = null;
     renderOverlay();
     return true;
   }
@@ -609,6 +620,116 @@ function msgActs(a, b, id, rid, v) {
   }
   return false;
 }
+
+/* 사람: 프로필 · 상태 · 설정 · '나' 메뉴 */
+function peopleActs(a, b, id, v) {
+  if (a === 'prof') {
+    closeThread(true);
+    S.mem = null;
+    S.prof = v;
+    S.pane = narrow() ? 'thread' : S.pane;
+    renderOverlay();
+    render();
+    return true;
+  }
+  if (a === 'profdm') {
+    S.prof = null;
+    openDM(v);
+    return true;
+  }
+  if (a === 'memenu') {
+    S.mem = !S.mem;
+    renderOverlay();
+    return true;
+  }
+  if (a === 'stopen') {
+    var st = stOf(S.u.uid) || {};
+    S.mem = null;
+    S.stp = { e: st.e || '', t: st.t || '', u: st.until ? '' : '', redraw: true };
+    if (st.until) S.stp.u = 'keep';
+    renderOverlay();
+    setTimeout(function () {
+      var x = document.getElementById('st-t');
+      if (x && !narrow()) x.focus();
+    }, 30);
+    return true;
+  }
+  if (a === 'stpre' || a === 'stuntil' || a === 'stemo') {
+    var d = S.stp,
+      ti = document.getElementById('st-t');
+    if (!d) return true;
+    if (ti) d.t = ti.value;
+    if (a === 'stpre') {
+      var p = ST_PRESET[+v];
+      d.e = p[0];
+      d.t = p[1];
+      d.u = p[2];
+    } else if (a === 'stuntil') d.u = v;
+    else {
+      /* 이모지 창으로 고르고 돌아와요 */
+      S.ep = { mode: 'st', q: '' };
+      renderOverlay();
+      loadEmoji().then(function () {
+        if (S.ep) renderOverlay();
+      });
+      return true;
+    }
+    d.redraw = true;
+    renderOverlay();
+    return true;
+  }
+  if (a === 'stsave' || a === 'stclear') {
+    var s2 = S.stp,
+      t2 = document.getElementById('st-t');
+    if (!s2) return true;
+    if (t2) s2.t = t2.value;
+    S.stp = null;
+    renderOverlay();
+    var cur = stOf(S.u.uid);
+    /* '그대로'(keep)면 원래 끝나는 시각을 그대로 둬요 */
+    if (a === 'stclear') saveStatus('', '', '');
+    else if (s2.u === 'keep' && cur && cur.until)
+      saveStatus(s2.e, s2.t, '').then(function () {
+        return db.collection('users').doc(S.u.uid).update({ 'st.until': cur.until });
+      });
+    else saveStatus(s2.e, s2.t, s2.u);
+    return true;
+  }
+  if (a === 'meedit' || a === 'setopen') {
+    S.mem = null;
+    renderOverlay();
+    stopConv();
+    S.view = { k: a === 'meedit' ? 'me' : 'set' };
+    S.tab = 'home';
+    S.pane = 'conv';
+    render();
+    return true;
+  }
+  if (a === 'mesave') {
+    var f = {};
+    ['dname', 'title', 'phone'].forEach(function (k) {
+      var x = document.getElementById('pf-' + k);
+      f[k] = x ? x.value : '';
+    });
+    saveProfile(f).then(function (ok) {
+      if (ok) {
+        S.view = null;
+        S.pane = 'list';
+        render();
+      }
+    });
+    return true;
+  }
+  if (a === 'pref') {
+    setPref(b.getAttribute('data-k'), v);
+    return true;
+  }
+  return false;
+}
+document.addEventListener('change', function (ev) {
+  var t = ev.target;
+  if (t.getAttribute && t.getAttribute('data-act') === 'prefck') setPref(t.getAttribute('data-k'), t.checked);
+});
 
 /* 휴대폰: 메시지를 길게 누르면 아래 메뉴 */
 var LP = { t: null, x: 0, y: 0, fired: 0 };

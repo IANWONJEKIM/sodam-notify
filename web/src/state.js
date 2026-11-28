@@ -59,8 +59,9 @@ function isAdmin() {
 function nameOf(uid) {
   var u = S.users[uid];
   if (!u) return '알 수 없음';
+  /* 본인이 정한 표시 이름 → 관리자가 등록한 이름 → 구글 이름 */
   var st = S.staff[u.email];
-  return (st && st.name) || u.name || u.email;
+  return u.dname || (st && st.name) || u.name || u.email;
 }
 function userOfEmail(e) {
   for (var k in S.users) if (S.users[k].email === e) return k;

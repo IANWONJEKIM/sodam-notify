@@ -89,7 +89,13 @@ function tabBtns(cls) {
   }).join('');
 }
 function railHTML() {
-  return '<nav class="rail" aria-label="탭">' + tabBtns('rt') + '<span class="sp"></span>' + av(S.u.uid) + '</nav>';
+  return (
+    '<nav class="rail" aria-label="탭">' +
+    tabBtns('rt') +
+    '<span class="sp"></span><button class="rme" data-act="memenu" aria-label="나 · 상태·프로필·설정">' +
+    av(S.u.uid) +
+    '</button></nav>'
+  );
 }
 function botHTML() {
   return '<nav class="bot" aria-label="탭">' + tabBtns('bt') + '</nav>';

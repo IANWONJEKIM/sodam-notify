@@ -6,6 +6,7 @@ import { stopConv, openConv } from './conv.js';
 import { autoJoin } from './chmem.js';
 import { readHash, jump } from './msgact.js';
 import { listenThreads, threadsFromActs } from './threads.js';
+import { startPresence, stopPresence } from './people.js';
 import { render } from './ui/render.js';
 
 function start() {
@@ -169,6 +170,9 @@ function start() {
       ),
   );
   listenThreads(UN);
+  /* 접속 중 표시: 앱을 열어 둔 동안 5분마다 기록 */
+  startPresence();
+  UN.push(stopPresence);
   /* 나중에 보기 · 내 활동 (본인 것만) */
   var me = db.collection('users').doc(S.u.uid);
   UN.push(

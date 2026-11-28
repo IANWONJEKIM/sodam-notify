@@ -1,6 +1,7 @@
 /* 그리기 공통 (아바타·본문·입력창) */
 import { esc, colorOf } from '../util.js';
 import { rich } from './rich.js';
+import { isOnline, prefs } from '../people.js';
 import { nameOf, userOfEmail, sname, narrow, S } from '../state.js';
 
 function av(uid, sm) {
@@ -9,6 +10,7 @@ function av(uid, sm) {
   return (
     '<span class="av' +
     (sm ? ' sm' : '') +
+    (isOnline(uid) ? ' on' : '') +
     '" style="background:' +
     colorOf(u.email || uid) +
     '">' +
@@ -104,7 +106,9 @@ function compHTML(id, ph) {
     '" aria-label="보내기" disabled>➤</button></div>' +
     (narrow()
       ? ''
-      : '<p class="hint">Enter 보내기 · Shift+Enter 줄 바꿈 · @이름 으로 부르기 · *굵게* _기울임_ - 목록</p>') +
+      : '<p class="hint">' +
+        (prefs().enter === 'newline' ? 'Ctrl+Enter 보내기 · Enter 줄 바꿈' : 'Enter 보내기 · Shift+Enter 줄 바꿈') +
+        ' · @이름 으로 부르기 · *굵게* _기울임_ - 목록</p>') +
     '</div>'
   );
 }

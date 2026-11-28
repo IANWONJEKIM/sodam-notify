@@ -20,6 +20,8 @@ import { ucount, cntHTML } from '../unread.js';
 import { av, pav, gav, compHTML } from '../ui/common.js';
 import { boardHTML } from '../ui/board.js';
 import { botHTML, actTabHTML } from '../ui/tabs.js';
+import { meEditHTML, setHTML } from './profile.js';
+import { stBadge, stOf, stUntilLabel } from '../people.js';
 import { adminHTML, newdmHTML, csetHTML } from '../admin.js';
 
 function convTitle(v) {
@@ -42,15 +44,18 @@ function convTitle(v) {
   return d ? esc(nameOf(dmOther(d))) + (dmOther(d) === S.u.uid ? ' <small>나에게 메모</small>' : '') : 'DM';
 }
 /* 나 (사진·이름·로그아웃) */
+/* 나: 누르면 '나' 메뉴 (상태·프로필·설정·로그아웃) */
 function meHTML() {
+  var st = stOf(S.u.uid);
   return (
-    '<div class="me">' +
+    '<button class="me" data-act="memenu" aria-label="나 · 상태·프로필·설정">' +
     av(S.u.uid) +
     '<span class="nm"><b>' +
     esc(nameOf(S.u.uid)) +
+    stBadge(S.u.uid) +
     '</b><br><span style="color:var(--side-muted);font-size:12px">' +
-    esc(S.email) +
-    '</span></span><button data-act="logout">로그아웃</button></div>'
+    (st ? esc(st.t || '') + (st.until ? ' · ' + esc(stUntilLabel(st)) : '') : '상태 정하기') +
+    '</span></span><span class="mechev">⋯</span></button>'
   );
 }
 /* 왼쪽 목록: 탭에 따라 홈(채널·DM) / DM / 내 활동 / 나중에 보기.
@@ -140,6 +145,7 @@ function sideHTML() {
       (d.g ? gav(os) : av(o, 1)) +
       '<span class="nm">' +
       esc(d.g ? dmName(d) : nameOf(o)) +
+      (d.g ? '' : stBadge(o)) +
       (!d.g && o === S.u.uid ? ' (나)' : '') +
       '</span>' +
       cntHTML(n) +
@@ -175,6 +181,8 @@ function mainHTML() {
     );
   if (v.k === 'cinfo') return cinfoHTML(chan(v.id));
   if (v.k === 'pins') return pinsHTML(v);
+  if (v.k === 'me') return meEditHTML();
+  if (v.k === 'set') return setHTML();
   if (v.k === 'cal')
     return (
       '<div class="top"><button class="back" data-act="back" aria-label="뒤로">‹</button><h2>📅 캘린더</h2></div>' +
