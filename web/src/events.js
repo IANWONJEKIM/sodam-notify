@@ -5,7 +5,17 @@ import { off, isAdmin, chan, narrow, S } from './state.js';
 import { cjoin, cleave } from './chmem.js';
 import { browseList } from './ui/layout.js';
 import { login } from './auth.js';
-import { stopConv, openConv, listen, markRead, openThread, closeThread, openDM, openGroup } from './conv.js';
+import {
+  stopConv,
+  openConv,
+  listen,
+  markRead,
+  openThread,
+  closeThread,
+  openDM,
+  openGroup,
+  leaveGroup,
+} from './conv.js';
 import { tk, tkRef, openTask, tkUp, tkAdd, tkSt } from './tasks.js';
 import { send, react, delMsg, saveEdit } from './messages.js';
 import { grow, applyFmt, insertAt } from './ui/common.js';
@@ -31,6 +41,7 @@ import { actSeenAt } from './ui/tabs.js';
 import { loadEmoji, reKey, hexToEmo, remember } from './ui/emoji.js';
 import { ST_PRESET, stOf, saveStatus, saveProfile, setPref, prefs } from './people.js';
 import {
+  closeDm,
   toggleFav,
   toggleMute,
   moveTo,
@@ -161,9 +172,9 @@ document.addEventListener('keydown', function (ev) {
   }
   if (
     ev.key === 'Escape' &&
-    (S.sheet || S.fwd || S.menu || S.ep || S.stp || S.mem || S.sim || S.secm || S.secnew || S.qs || S.delc)
+    (S.sheet || S.fwd || S.menu || S.ep || S.stp || S.mem || S.sim || S.secm || S.secnew || S.qs || S.delc || S.lvc)
   ) {
-    S.sheet = S.fwd = S.menu = S.ep = S.stp = S.mem = S.sim = S.secm = S.secnew = S.qs = S.delc = null;
+    S.sheet = S.fwd = S.menu = S.ep = S.stp = S.mem = S.sim = S.secm = S.secnew = S.qs = S.delc = S.lvc = null;
     renderOverlay();
     renderMsgs();
     renderThread();
@@ -638,7 +649,7 @@ function msgActs(a, b, id, rid, v) {
     return true;
   }
   if (a === 'ovclose') {
-    S.sheet = S.fwd = S.ep = S.stp = S.mem = S.sim = S.secm = S.secnew = S.qs = S.delc = null;
+    S.sheet = S.fwd = S.ep = S.stp = S.mem = S.sim = S.secm = S.secnew = S.qs = S.delc = S.lvc = null;
     renderOverlay();
     return true;
   }
@@ -897,6 +908,34 @@ function sideActs(a, b, v) {
   };
   if (a === 'simenu') {
     openSim(b.closest('.si'));
+    return true;
+  }
+  if (a === 'convmenu') {
+    S.sim = { k: v, g: v.indexOf('d_') === 0 ? 'dm' : 'ch' };
+    renderOverlay();
+    return true;
+  }
+  if (a === 'dmclose') {
+    S.sim = null;
+    closeDm(v);
+    if (S.view && S.view.k === 'd' && 'd_' + S.view.id === v) {
+      stopConv();
+      S.view = null;
+      S.pane = 'list';
+    }
+    return done();
+  }
+  if (a === 'dmleave') {
+    S.sim = null;
+    S.lvc = b.getAttribute('data-id');
+    renderOverlay();
+    return true;
+  }
+  if (a === 'dmleaveok') {
+    var lid = S.lvc;
+    S.lvc = null;
+    renderOverlay();
+    if (lid) leaveGroup(lid);
     return true;
   }
   if (a === 'simfav') return (toggleFav(v), done());

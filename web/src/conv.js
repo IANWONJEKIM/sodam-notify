@@ -1,7 +1,7 @@
 /* 대화 열기 */
 import { db, FV } from './firebase.js';
 import { toast, errMsg, ms } from './util.js';
-import { convKey, convRef, dmId, chan, dm, narrow, S, LS } from './state.js';
+import { convKey, convRef, dmId, chan, dm, nameOf, narrow, S, LS } from './state.js';
 import { unread } from './unread.js';
 import { listenTasks } from './tasks.js';
 import { renderMsgs, renderThread } from './ui/messages.js';
@@ -202,4 +202,32 @@ function openGroup(uids) {
     });
 }
 
-export { stopConv, openConv, listen, markRead, openThread, closeThread, openDM, openGroup, GMAX };
+/* 그룹 DM 나가기: '○○님이 나갔어요'를 남기고, 멤버에서 나를 빼요 (규칙: 나만 뺄 수 있음) */
+function leaveGroup(id) {
+  var ref = db.collection('dms').doc(id),
+    me = nameOf(S.u.uid),
+    b = db.batch();
+  b.set(ref.collection('msgs').doc(), { uid: S.u.uid, text: '', sys: 'left', at: FV.serverTimestamp(), men: [] });
+  b.update(ref, { last: { text: me + '님이 나갔어요', by: S.u.uid }, lastAt: FV.serverTimestamp() });
+  return b
+    .commit()
+    .then(function () {
+      /* 나가기 전에 그 방 듣기를 먼저 멈춰요 (나간 뒤엔 읽을 권한이 없어서) */
+      if (S.view && S.view.k === 'd' && S.view.id === id) {
+        stopConv();
+        S.view = null;
+        S.pane = 'list';
+      }
+      return ref.update({ m: FV.arrayRemove(S.u.uid) });
+    })
+    .then(
+      function () {
+        toast('그룹 DM에서 나왔어요');
+        render();
+      },
+      function (e) {
+        toast('나가지 못했어요 · ' + errMsg(e));
+      },
+    );
+}
+export { leaveGroup, stopConv, openConv, listen, markRead, openThread, closeThread, openDM, openGroup, GMAX };

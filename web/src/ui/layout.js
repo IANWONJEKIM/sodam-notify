@@ -1,6 +1,6 @@
 /* 사이드바 · 가운데 화면 */
 import { db } from '../firebase.js';
-import { esc, md } from '../util.js';
+import { esc, md, ms } from '../util.js';
 import {
   isAdmin,
   nameOf,
@@ -22,7 +22,7 @@ import { boardHTML } from '../ui/board.js';
 import { botHTML, actTabHTML } from '../ui/tabs.js';
 import { meEditHTML, setHTML } from './profile.js';
 import { stBadge, stOf, stUntilLabel } from '../people.js';
-import { side, ordered } from '../side.js';
+import { side, ordered, isClosed } from '../side.js';
 import { searchHTML } from '../search.js';
 import { adminHTML, newdmHTML, csetHTML } from '../admin.js';
 
@@ -88,7 +88,8 @@ function sideHTML() {
   });
   S.dms.forEach(function (d) {
     var on = S.view && S.view.k === 'd' && S.view.id === d.id;
-    if (d.lastAt || on) INFO['d_' + d.id] = { t: 'dm', d: d };
+    /* 닫아 둔 DM은 새 메시지가 올 때까지 숨겨요 */
+    if ((d.lastAt || on) && (on || !isClosed('d_' + d.id, ms(d.lastAt)))) INFO['d_' + d.id] = { t: 'dm', d: d };
   });
   function itemHTML(key, g) {
     var x = INFO[key],
@@ -316,6 +317,12 @@ function mainHTML() {
         (c.mem || []).length +
         '</button>' +
         (isAdmin() ? '<button class="btn sm ghost" data-act="cset" data-id="' + esc(c.id) + '">설정</button>' : '')
+      : '') +
+    /* ⋯ 대화 메뉴 (즐겨찾기·섹션·음소거·나가기·DM 닫기) */
+    (v.k === 'c' || v.k === 'd'
+      ? '<button class="btn sm ghost" data-act="convmenu" data-v="' +
+        esc(v.k + '_' + v.id) +
+        '" aria-label="대화 메뉴" title="대화 메뉴">⋯</button>'
       : '');
   var h =
     '<div class="top"><button class="back" data-act="back" aria-label="목록으로">‹</button><h2>' +

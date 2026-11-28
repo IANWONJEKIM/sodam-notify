@@ -2218,3 +2218,10 @@ div.si {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   min-height: 36px;
 }
+/* 알림 줄 (○○님이 나갔어요) */
+.sysm {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12.5px;
+  margin: 8px 16px;
+}

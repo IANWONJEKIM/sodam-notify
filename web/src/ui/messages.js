@@ -9,8 +9,15 @@ import { isSaved } from '../msgact.js';
 import { listen as listenMore } from '../conv.js';
 
 function msgHTML(x, prev, rid, root) {
+  /* 알림 줄 (그룹 DM 나가기 등) */
+  if (x.sys === 'left') return '<div class="sysm">' + esc(nameOf(x.uid)) + '님이 나갔어요 · ' + hm(x.at) + '</div>';
   var cont =
-      prev && prev.uid === x.uid && !prev.del && ms(x.at) - ms(prev.at) < 5 * 6e4 && dayKey(prev.at) === dayKey(x.at),
+      prev &&
+      prev.uid === x.uid &&
+      !prev.del &&
+      !prev.sys &&
+      ms(x.at) - ms(prev.at) < 5 * 6e4 &&
+      dayKey(prev.at) === dayKey(x.at),
     mine = x.uid === S.u.uid,
     men = (x.men || []).indexOf(S.u.uid) >= 0 && !mine,
     ids = ' data-id="' + esc(rid ? S.thread : x.id) + '"' + (rid ? ' data-rid="' + esc(x.id) + '"' : ''),

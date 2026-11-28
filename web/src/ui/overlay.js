@@ -44,6 +44,7 @@ function renderOverlay() {
     return;
   }
   if (S.delc) h = delHTML();
+  else if (S.lvc) h = leaveHTML();
   else if (S.fwd) h = fwdHTML();
   else if (S.stp) h = stSheetHTML();
   else if (S.mem) h = meMenuHTML();
@@ -138,6 +139,16 @@ function fwdHTML() {
   );
 }
 
+/* 그룹 DM 나가기 확인 창 */
+function leaveHTML() {
+  return (
+    '<div class="ovbg" data-act="ovclose"></div><div class="dlg delc" role="alertdialog" aria-label="그룹 DM 나가기"><h3>그룹 DM에서 나갈까요?</h3>' +
+    '<p class="small muted" style="margin:0">나가면 이 대화를 더 볼 수 없어요. 남은 사람들에게 "' +
+    esc(nameOf(S.u.uid)) +
+    '님이 나갔어요"가 보여요. 다시 들어오려면 다른 사람이 새 그룹 DM을 만들어야 해요.</p>' +
+    '<div class="row"><span class="sp"></span><button class="btn ghost" data-act="ovclose">취소</button><button class="btn danger" data-act="dmleaveok">나가기</button></div></div>'
+  );
+}
 /* 지우기 확인 창 */
 function delHTML() {
   var d = S.delc,

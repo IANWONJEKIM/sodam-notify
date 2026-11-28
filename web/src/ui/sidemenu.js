@@ -33,6 +33,8 @@ function itemMenuHTML() {
     mu = sd.mute.indexOf(k) >= 0,
     cur = secOf(k, sd),
     c = k.indexOf('c_') === 0 ? chan(k.slice(2)) : null,
+    dd = k.indexOf('d_') === 0 ? dm(k.slice(2)) : null,
+    gdm = dd && dd.g ? dd : null,
     g = S.sim.g,
     V = ' data-v="' + esc(k) + '"';
   var h =
@@ -66,6 +68,9 @@ function itemMenuHTML() {
     (c && joined(c)
       ? it('cleave', '🚪', c.kind === 'proj' ? '프로젝트 나가기' : '채널 나가기', ' data-id="' + esc(c.id) + '"', 'bad')
       : '') +
+    /* DM: 내 목록에서 닫기 · 그룹 DM은 나가기도 */
+    (k.indexOf('d_') === 0 ? it('dmclose', '🙈', '대화 닫기 (내 목록에서만)', V) : '') +
+    (gdm ? it('dmleave', '🚪', '그룹 DM 나가기', ' data-id="' + esc(gdm.id) + '"', 'bad') : '') +
     '</div><button class="btn ghost sheet-x" data-act="ovclose">닫기</button></div>';
   return h;
 }

@@ -36,10 +36,11 @@ function pav(e) {
 }
 /* 그룹 DM 사진: 두 사람 사진을 겹치고 인원수 */
 function gav(uids) {
+  /* 나간 사람이 있어 한 명만 남으면 사진 하나만 */
   return (
     '<span class="avg">' +
     av(uids[0], 1) +
-    av(uids[1], 1) +
+    (uids.length > 1 ? av(uids[1], 1) : '') +
     '</span><span class="gn" aria-label="' +
     (uids.length + 1) +
     '명">' +

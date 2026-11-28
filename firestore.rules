@@ -151,7 +151,10 @@ service cloud.firestore {
           && request.resource.data.m.size() <= 8
           && request.resource.data.m.toSet().size() == request.resource.data.m.size()
           && did.matches('g_[A-Za-z0-9]+')));
-      allow update: if isStaff() && request.auth.uid in resource.data.m && onlyKeys(['last', 'lastAt']);
+      // 그룹 DM 나가기: 멤버 목록에서 나만 빼기 (1:1 DM은 나가기 없음, 목록에서 닫기만)
+      allow update: if isStaff() && request.auth.uid in resource.data.m && (onlyKeys(['last', 'lastAt'])
+        || (resource.data.get('g', false) == true && onlyKeys(['m'])
+          && request.resource.data.m.toSet() == resource.data.m.toSet().difference([request.auth.uid].toSet())));
       match /msgs/{mid} {
         allow read: if inDm();
         allow create: if inDm() && mine();

@@ -5,6 +5,7 @@
      ord: {묶음id: [키…]}     묶음 안 순서 (fav · 섹션id · ch · pj · dm)
      mute: [키…]              음소거
      shut: [묶음id…]           접어 둔 묶음
+     hid: {키: 닫은 시각(ms)}   닫은 DM (그 뒤에 새 메시지가 오면 다시 보여요)
    }
    바꾸면 화면을 먼저 바꾸고(바로 반응) 저장해요. */
 import { db } from './firebase.js';
@@ -22,6 +23,7 @@ function side() {
     ord: Object.assign({}, s.ord || {}),
     mute: (s.mute || []).slice(),
     shut: (s.shut || []).slice(),
+    hid: Object.assign({}, s.hid || {}),
   };
 }
 function saveSide(next) {
@@ -169,7 +171,22 @@ function nudge(g, keys, k, dir) {
   return setOrder(g, L);
 }
 
+/* DM 닫기: 내 목록에서만 숨겨요 (즐겨찾기·섹션에서도 빼요) */
+function closeDm(k) {
+  var s = side();
+  detach(s, k);
+  s.hid[k] = Date.now();
+  toast('대화를 닫았어요. 새 메시지가 오면 다시 보여요');
+  return saveSide(s);
+}
+/* 닫아 둔 DM인지 (닫은 뒤 새 메시지가 없으면 true) */
+function isClosed(k, lastAtMs) {
+  var t = side().hid[k];
+  return !!t && !(lastAtMs > t);
+}
 export {
+  closeDm,
+  isClosed,
   side,
   isMuted,
   isFav,

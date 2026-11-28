@@ -271,6 +271,14 @@ describe('그룹 DM', () => {
     await assertFails(getDocs(collection(as(P.boss), 'dms', 'g_x', 'msgs')));
     await assertFails(getDoc(doc(as(P.owner), 'dms', 'g_x')));
   });
+  it('그룹 DM은 나만 나갈 수 있어요 (남을 빼거나 1:1 DM에서 나가기는 안 돼요)', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), 'dms', 'g_x'), g));
+    await assertFails(updateDoc(doc(as(P.a), 'dms', 'g_x'), { m: ['uA', 'uC'] }));
+    await assertFails(updateDoc(doc(as(P.boss), 'dms', 'g_x'), { m: ['uA', 'uB'] }));
+    await assertSucceeds(updateDoc(doc(as(P.c), 'dms', 'g_x'), { m: arrayRemove('uC') }));
+    await assertFails(getDocs(collection(as(P.c), 'dms', 'g_x', 'msgs')));
+    await assertFails(updateDoc(doc(as(P.a), 'dms', 'uA_uB'), { m: arrayRemove('uA') }));
+  });
   it('멤버를 나중에 바꾸지 못해요', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), 'dms', 'g_x'), g));
     await assertFails(updateDoc(doc(as(P.a), 'dms', 'g_x'), { m: ['uA', 'uB', 'uC', 'uD'] }));
