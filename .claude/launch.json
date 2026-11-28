@@ -1,7 +1,35 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "app-live", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev:live"], "port": 5173, "url": "http://localhost:5173" },
-    { "name": "app-emu", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5173, "url": "http://localhost:5173" }
+    {
+      "name": "app-live",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:live"
+      ],
+      "port": 5173,
+      "url": "http://localhost:5173"
+    },
+    {
+      "name": "app-emu",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173,
+      "url": "http://localhost:5173"
+    },
+    {
+      "name": "app-phone",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:phone"
+      ],
+      "port": 5173,
+      "url": "http://localhost:5173"
+    }
   ]
 }

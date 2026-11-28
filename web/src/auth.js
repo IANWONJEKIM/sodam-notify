@@ -16,6 +16,21 @@ function gate(msg, showLogin, showOut) {
         '구글 계정으로 로그인</button><p class="small muted" style="margin:0">관리자가 등록한 Gmail로만 들어올 수 있어요.</p>'
       : '') +
     (showOut ? '<button class="btn ghost" data-act="logout">다른 계정으로 로그인</button>' : '') +
+    /* 에뮬레이터(시험용)에서만: 시험 계정으로 바로 들어가기 · 진짜 사이트 빌드에는 안 나와요 */
+    (import.meta.env.VITE_EMU === '1' && (showLogin || showOut)
+      ? '<div class="emuas"><p class="small muted" style="margin:0">시험용 (가짜 데이터)</p>' +
+        [
+          ['wonjea47@gmail.com', '김원제 (관리자)'],
+          ['mina@sodam.test', '김민아'],
+          ['sua@sodam.test', '이수아'],
+          ['jun@sodam.test', '박준'],
+        ]
+          .map(function (a) {
+            return '<button class="btn ghost" data-act="emuas" data-v="' + a[0] + '">' + a[1] + '</button>';
+          })
+          .join('') +
+        '</div>'
+      : '') +
     '</div></div>';
 }
 function login() {

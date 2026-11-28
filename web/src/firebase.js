@@ -10,8 +10,10 @@ export var auth = firebase.auth(),
   db = firebase.firestore(),
   FV = firebase.firestore.FieldValue;
 if (EMU) {
-  auth.useEmulator('http://127.0.0.1:9099', { disableWarnings: true });
-  db.useEmulator('127.0.0.1', 8080);
+  /* 휴대폰으로 같은 와이파이에서 열면(예: 172.30.1.78:5173) 에뮬레이터도 그 컴퓨터 주소로 찾아요 */
+  var EH = location.hostname === 'localhost' ? '127.0.0.1' : location.hostname;
+  auth.useEmulator('http://' + EH + ':9099', { disableWarnings: true });
+  db.useEmulator(EH, 8080);
   console.info('[소담] 에뮬레이터에 연결했어요 (진짜 데이터 아님)');
   /* 에뮬레이터 전용: 시험 계정으로 바로 바꿔 들어가기 · __as('mina@sodam.test') */
   window.__as = function (email, name) {

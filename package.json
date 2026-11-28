@@ -11,7 +11,8 @@
     "lint": "eslint web/src tests",
     "format": "prettier --write web tests",
     "test:rules": "firebase emulators:exec --project demo-sodam --only firestore \"vitest run\"",
-    "seed": "node tests/seed-emu.mjs"
+    "seed": "node tests/seed-emu.mjs",
+    "dev:phone": "vite --mode emu --host"
   },
   "dependencies": {
     "firebase": "^10.12.2"

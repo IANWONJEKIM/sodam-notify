@@ -159,6 +159,7 @@ document.addEventListener('click', function (ev) {
     rid = b.getAttribute('data-rid'),
     v = b.getAttribute('data-v');
   if (a === 'login') return login();
+  if (a === 'emuas' && window.__as) return window.__as(v, b.textContent.replace(/ \(.*\)$/, ''));
   if (a === 'logout') {
     off();
     return auth.signOut();
