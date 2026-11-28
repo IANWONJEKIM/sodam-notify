@@ -120,6 +120,11 @@ service cloud.firestore {
           allow delete: if chOk(cid) && (isAdmin() || resource.data.uid == request.auth.uid);
         }
       }
+      // 읽음 표시(카카오톡처럼): 각자 마지막으로 읽은 시각. 그 채널을 볼 수 있는 사람만 보고, 본인 것만 써요
+      match /rd/{ruid} {
+        allow read: if chOk(cid);
+        allow write: if chOk(cid) && ruid == request.auth.uid && request.resource.data.keys().hasOnly(['at']);
+      }
       // 프로젝트 할 일: 멤버 누구나 만들고 고쳐요. 지우기는 만든 사람이나 관리자
       match /tasks/{tid} {
         allow read: if chOk(cid);
@@ -155,6 +160,11 @@ service cloud.firestore {
       allow update: if isStaff() && request.auth.uid in resource.data.m && (onlyKeys(['last', 'lastAt'])
         || (resource.data.get('g', false) == true && onlyKeys(['m'])
           && request.resource.data.m.toSet() == resource.data.m.toSet().difference([request.auth.uid].toSet())));
+      // 읽음 표시: 대화에 든 사람만 보고, 본인 것만 써요
+      match /rd/{ruid} {
+        allow read: if inDm();
+        allow write: if inDm() && ruid == request.auth.uid && request.resource.data.keys().hasOnly(['at']);
+      }
       match /msgs/{mid} {
         allow read: if inDm();
         allow create: if inDm() && mine();

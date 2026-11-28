@@ -19,6 +19,7 @@ function stopConv() {
     LS.TKUN = null;
   }
   stopPins();
+  stopRd();
   S.tasks = [];
   S.pins = [];
   S.menu = null;
@@ -46,6 +47,7 @@ function openConv(v) {
   S.atBottom = true;
   listen();
   listenPins();
+  listenRd();
   if (v.tab) listenTasks();
   markRead();
   render();
@@ -92,6 +94,47 @@ function markRead() {
     .doc(k)
     .set({ at: FV.serverTimestamp() })
     .catch(function () {});
+  writeRd();
+}
+/* 읽음 표시(카카오톡처럼): 이 대화를 어디까지 읽었는지 멤버끼리 보는 칸 */
+function writeRd() {
+  var v = S.view;
+  if (!v || (v.k !== 'c' && v.k !== 'd')) return;
+  convRef(v)
+    .collection('rd')
+    .doc(S.u.uid)
+    .set({ at: FV.serverTimestamp() })
+    .catch(function () {});
+}
+function listenRd() {
+  stopRd();
+  var v = S.view;
+  S.rd = {};
+  LS.RDUN = convRef(v)
+    .collection('rd')
+    .onSnapshot(
+      function (s) {
+        if (S.view !== v) return;
+        S.rd = {};
+        s.forEach(function (d) {
+          var a = d.data().at;
+          S.rd[d.id] = a ? ms(a) : Date.now();
+        });
+        /* 내 칸이 없거나 마지막 메시지보다 옛날이면 (보고 있는 중이니) 지금으로 */
+        var c = v.k === 'c' ? chan(v.id) : dm(v.id),
+          mine = S.rd[S.u.uid] || 0;
+        if (!document.hidden && v.tab !== 'task' && (!mine || (c && c.lastAt && ms(c.lastAt) > mine + 1000))) writeRd();
+        renderMsgs();
+      },
+      function () {},
+    );
+}
+function stopRd() {
+  if (LS.RDUN) {
+    LS.RDUN();
+    LS.RDUN = null;
+  }
+  S.rd = {};
 }
 document.addEventListener('visibilitychange', function () {
   if (!document.hidden) markRead();

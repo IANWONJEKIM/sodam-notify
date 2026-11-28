@@ -37,6 +37,7 @@
   - `channels/{cid}/tasks/{tid}` {title, memo, who[Gmail], due(YYYY-MM-DD), st(todo|doing|done), doneAt, by, at, cc} → `cmts/{id}` {uid, text, at, men[]}
   - `channels/{cid}/msgs/{mid}` {uid, text, at, men[], re{like|heart|lol|ok|eyes|pray:[uid]}, rc, ru[], lastReplyAt, ed, del} → `replies/{rid}`
   - 사이드바 안 읽은 개수: 읽은 시각 이후 남이 보낸 메시지를 100개까지 세서 표시(99+)
+  - 읽음 숫자(카카오톡처럼, 2026-11-28 원제님 요청): `channels/{cid}/rd/{uid}`·`dms/{did}/rd/{uid}` {at} = 각자 마지막으로 읽은 시각. 그 대화를 볼 수 있는 사람만 읽고 본인 칸만 씀(규칙+테스트). 메시지 글 바로 뒤에 (멤버 − 보낸 사람 − 읽은 사람) 숫자, 모두 읽으면 안 보임. 채널 멤버 = 들어간 사람(mem), 앱에 로그인한 적 있는 사람만 셈. 스레드 답글엔 없음.
 - `dms/{작은uid_큰uid}` {m:[uid,uid], last, lastAt} → `msgs` → `replies`. **DM은 두 사람만 읽기/쓰기**(관리자도 못 봄, 규칙으로 보장).
   - 그룹 DM(2026-11-28): `dms/g_{임의}` {m:[uid 3~8명], g:true}. 멤버만 읽기/쓰기. 같은 멤버 방이 있으면 그 방을 엶.
   - DM 닫기·나가기(2026-11-28, 원제님 결정): 대화방 통째 삭제는 없음(상대 기록 보호). 1:1·그룹 모두 '대화 닫기' = 내 목록에서만 숨김(`users/{uid}.side.hid[키]=닫은 시각`, 새 메시지 오면 다시 보임). 그룹 DM만 '나가기' = 규칙상 m에서 나만 빼기 + `msgs`에 {sys:'left'} 알림 줄("○○님이 나갔어요").

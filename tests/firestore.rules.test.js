@@ -247,6 +247,20 @@ describe('DM', () => {
   });
 });
 
+describe('읽음 표시 (rd)', () => {
+  it('대화를 볼 수 있는 사람만 보고, 본인 칸만 써요', async () => {
+    await assertSucceeds(setDoc(doc(as(P.a), 'channels', 'pub', 'rd', P.a.uid), { at: serverTimestamp() }));
+    await assertFails(setDoc(doc(as(P.a), 'channels', 'pub', 'rd', P.b.uid), { at: serverTimestamp() }));
+    await assertFails(setDoc(doc(as(P.a), 'channels', 'pub', 'rd', P.a.uid), { at: serverTimestamp(), x: 1 }));
+    await assertSucceeds(getDocs(collection(as(P.b), 'channels', 'pub', 'rd')));
+    await assertFails(getDocs(collection(as(P.b), 'channels', 'sec', 'rd')));
+    await assertSucceeds(setDoc(doc(as(P.a), 'dms', 'uA_uB', 'rd', P.a.uid), { at: serverTimestamp() }));
+    await assertSucceeds(getDocs(collection(as(P.b), 'dms', 'uA_uB', 'rd')));
+    await assertFails(getDocs(collection(as(P.c), 'dms', 'uA_uB', 'rd')));
+    await assertFails(setDoc(doc(as(P.c), 'dms', 'uA_uB', 'rd', P.c.uid), { at: serverTimestamp() }));
+  });
+});
+
 describe('그룹 DM', () => {
   const g = { m: ['uA', 'uB', 'uC'], g: true };
   it('3~8명, 내가 들어 있고 g_ 로 시작하는 id면 만들어져요', async () => {

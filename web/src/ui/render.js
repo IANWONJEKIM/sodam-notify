@@ -9,6 +9,7 @@ import { railHTML, botHTML, isTool, toolHTML } from '../ui/tabs.js';
 import { renderOverlay } from '../ui/overlay.js';
 import { profHTML } from './profile.js';
 import { applyPrefs } from '../people.js';
+import { keepSf, keepCf } from '../admin.js';
 import { isMuted } from '../side.js';
 
 /* PC 맨 위 가운데 검색창 (휴대폰은 홈 위쪽 🔍) */
@@ -22,6 +23,9 @@ function topHTML() {
 function render() {
   if (!S.u || !S.me) return;
   applyPrefs();
+  /* 관리 화면: 다시 그리기 전에 적던 값(직원 등록·채널 설정)을 먼저 담아 둬요 */
+  if (S.view && S.view.k === 'admin') keepSf();
+  if (S.view && S.view.k === 'cset') keepCf();
   var app = document.getElementById('app'),
     keep = snapComposer();
   if (!narrow() && S.pane === 'list' && S.view) S.pane = 'conv';
@@ -90,6 +94,8 @@ var CK = [
   'br-q',
   'fw-note',
   'sq',
+  'sf-name',
+  'sf-email',
   'pf-dname',
   'pf-title',
   'pf-phone',

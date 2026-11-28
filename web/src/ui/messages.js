@@ -2,7 +2,7 @@
 import { esc, ms, hm, dayKey, dayLabel, toast, EMO, EMOM } from '../util.js';
 import { emoOf } from './emoji.js';
 import { stBadge } from '../people.js';
-import { isAdmin, nameOf, narrow, S } from '../state.js';
+import { isAdmin, nameOf, userOfEmail, chan, dm, narrow, S } from '../state.js';
 import { av, fmt, compHTML } from '../ui/common.js';
 import { convTitle } from '../ui/layout.js';
 import { isSaved } from '../msgact.js';
@@ -69,12 +69,24 @@ function msgHTML(x, prev, rid, root) {
       '</textarea></div><div class="row" style="margin-bottom:4px"><button class="btn sm ghost" data-act="edcancel">취소</button><button class="btn sm" data-act="edsave"' +
       ids +
       '>저장</button><span class="small muted">Enter 저장 · Esc 취소</span></div>';
-  else
+  else {
+    /* 읽음 숫자(카카오톡처럼): 보낸 사람 빼고 아직 안 읽은 사람 수 · 글 바로 뒤에, 모두 읽으면 안 보여요 */
+    var rn = !rid && !root && !x.del ? unreadBy(x) : 0,
+      rnh = rn
+        ? ' <span class="rdn" title="안 읽은 사람 ' +
+          rn +
+          '명" aria-label="안 읽은 사람 ' +
+          rn +
+          '명">' +
+          rn +
+          '</span>'
+        : '';
     h += x.del
       ? '<div class="tx del">삭제된 메시지예요</div>'
       : (x.text || !x.fwd
-          ? '<div class="tx">' + fmt(x.text) + (x.ed ? ' <span class="ed">(수정됨)</span>' : '') + '</div>'
-          : '') + (x.fwd ? fwdHTML(x.fwd) : '');
+          ? '<div class="tx">' + fmt(x.text) + (x.ed ? ' <span class="ed">(수정됨)</span>' : '') + rnh + '</div>'
+          : '') + (x.fwd ? fwdHTML(x.fwd) + (x.text ? '' : '<div class="tx">' + rnh + '</div>') : '');
+  }
   /* 반응: 예전 6개 먼저, 그 밖의 이모지는 그 뒤에 */
   var re = x.re || {},
     rk = EMO.map(function (e) {
@@ -202,6 +214,28 @@ function fwdHTML(f) {
     esc([f.k, f.cid, f.mid, f.rid || ''].join('/')) +
     '">원래 메시지 보기</button></div>'
   );
+}
+/* 이 대화의 멤버(uid): 채널은 들어간 사람(mem, Gmail → uid), DM은 m */
+function convMembers() {
+  var v = S.view;
+  if (!v) return [];
+  if (v.k === 'd') {
+    var d = dm(v.id);
+    return (d && d.m) || [];
+  }
+  var c = chan(v.id);
+  return ((c && c.mem) || [])
+    .map(function (e) {
+      return userOfEmail(e);
+    })
+    .filter(Boolean);
+}
+function unreadBy(x) {
+  if (!S.rd || x.sys) return 0;
+  var t = ms(x.at);
+  return convMembers().filter(function (u) {
+    return u !== x.uid && !((S.rd[u] || 0) >= t);
+  }).length;
 }
 function listHTML(L, rid) {
   var h = '',
