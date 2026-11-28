@@ -1,0 +1,28 @@
+{
+  "name": "sodam-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode emu",
+    "dev:live": "vite",
+    "emu": "firebase emulators:start --project demo-sodam --import=.emu --export-on-exit",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint web/src tests",
+    "format": "prettier --write web tests",
+    "test:rules": "firebase emulators:exec --project demo-sodam --only firestore \"vitest run\""
+  },
+  "dependencies": {
+    "firebase": "^10.12.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "eslint": "^10.16.0",
+    "firebase-tools": "^15.37.0",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
+    "vite": "^8.4.0",
+    "vitest": "^5.1.2"
+  }
+}

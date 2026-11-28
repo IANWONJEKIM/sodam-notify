@@ -1,0 +1,9 @@
+rules_version = '2';
+// 사진·파일(Storage)은 아직 안 써요. 2단계에서 규칙을 만들기 전까지는 모두 막아 둬요.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

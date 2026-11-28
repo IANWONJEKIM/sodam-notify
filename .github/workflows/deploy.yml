@@ -1,0 +1,53 @@
+# main에 올리면: 보안 규칙 테스트 → 새 앱 빌드 → GitHub Pages 배포
+# 사이트 구성: 맨 위 = 지금 쓰는 알림 앱(그대로 복사), /app/ = 새 앱(빌드 결과)
+name: 배포
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4 # Firebase 에뮬레이터에 필요
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:rules
+      - run: npm run build
+      - name: 사이트 파일 모으기
+        run: |
+          mkdir -p _site
+          cp index.html firebase-messaging-sw.js config.js manifest.json icon-*.png _site/
+          cp -r dist/app _site/app
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

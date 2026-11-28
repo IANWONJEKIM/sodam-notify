@@ -8,13 +8,23 @@
 
 ## 저장소 구조
 - `/` (index.html, firebase-messaging-sw.js, config.js, manifest.json, icon-*.png): **지금 직원들이 쓰는 '소담상회' 알림 앱(PWA)**. 이름 + 연락처 뒷번호 로그인 → Apps Script(`config.gasUrl`)가 FCM 토큰을 구글 시트에 저장. 아이콘으로 열면 BASE CAMP로 이동, 알림을 누르면 `?go=탭`으로 워크툴의 해당 탭을 열어요. **새 앱이 완성될 때까지 건드리지 말 것.**
-- `/app/`: **새 올인원 앱 (개발 중)**. 단일 `index.html` + Firebase compat SDK 10.12.2(gstatic), `../config.js`의 Firebase 설정을 같이 써요.
-- `/app/firestore.rules`: Firestore 보안 규칙. 콘솔에 게시된 것과 같아야 해요.
-- 배포: GitHub Pages (https://ianwonjekim.github.io/sodam-notify/), main에 푸시하면 몇 분 안에 반영.
+- `web/`: **새 올인원 앱 소스 (개발 중)**. Vite + 바닐라 JS 모듈, Firebase compat SDK 10.12.2(npm). 실행 중에 `../config.js`(SODAM_CFG)와 `../icon-*.png`를 같이 써요.
+  - `web/src/`: `main.js`(시작) · `firebase.js`(연결, 에뮬레이터 전환) · `state.js`(상태 S, 구독 해제 LS) · `util.js` · `auth.js` · `data.js`(구독) · `conv.js`(대화·스레드 열기) · `messages.js`(보내기·반응·수정/삭제) · `tasks.js` · `unread.js` · `mention.js` · `admin.js`(관리·새 DM·채널 설정) · `events.js`(클릭·키 입력) · `ui/`(그리기) · `style.css`
+  - 빌드 결과는 `dist/app/` → 사이트의 `/app/`. 저장소에는 빌드 결과를 넣지 않아요.
+- `firestore.rules`: Firestore 보안 규칙(저장소 맨 위). 콘솔에 게시된 것과 같아야 해요. 테스트: `tests/firestore.rules.test.js`
+- `storage.rules`: 아직 Storage를 안 써서 전부 막아 둠.
+- 배포: GitHub Pages (https://ianwonjekim.github.io/sodam-notify/), **GitHub Actions**(`.github/workflows/deploy.yml`)가 main 푸시 때 규칙 테스트 → 빌드 → 루트 파일 + `/app/` 를 함께 배포. 테스트가 실패하면 배포 안 됨.
+
+## 명령어 (Java 21 이상 필요: 에뮬레이터)
+- `npm run emu` — 에뮬레이터 켜기(Auth·Firestore·Storage, 화면 http://127.0.0.1:4000). 프로젝트 id `demo-sodam`이라 진짜 데이터와 안 섞여요. 데이터는 `.emu/`에 저장.
+- `npm run dev` — 에뮬레이터에 붙는 앱(http://localhost:5173/app/). 가짜 구글 계정으로 wonjea47@gmail.com 을 넣으면 관리자로 시작.
+- `npm run dev:live` — 진짜 Firebase에 붙는 앱(조심).
+- `npm run test:rules` · `npm run lint` · `npm run build` · `npm run format`
+- Functions 에뮬레이터는 2단계에서 `functions/` 폴더를 만들 때 켜져요(포트 5001 예약).
 
 ## Firebase (프로젝트 sodam-notify)
 - Authentication: Google 로그인 켜짐, 승인 도메인에 ianwonjekim.github.io 추가됨.
-- Firestore: Standard, (default), asia-northeast3. 규칙은 `/app/firestore.rules`.
+- Firestore: Standard, (default), asia-northeast3. 규칙은 `firestore.rules`.
 - FCM: 웹 푸시 VAPID 키는 config.js에. 서비스 계정 키는 Apps Script 속성(SA_JSON)에만 있어요(저장소에 넣지 말 것).
 - 아직 안 함: Storage(사진) · Cloud Functions(즉시 알림) → Blaze 요금제 필요. 예산 알림(월 1,000원 정도) 걸기로 함. Storage 무료 범위는 미국 지역 버킷만.
 
@@ -34,7 +44,8 @@
 원제님 결정(2026-11-28): 슬랙 기능을 **전부** 넣고 거기서 다듬는다. 허들(음성·영상)은 뺀다(일반 전화가 낫다).
 슬랙의 UX/UI를 참고해서 만든다. 각 단계 시작 전에 화면·동작 계획을 짧게 보여 주고 확인받는다.
 
-### 0. 구조 정리 (클로드 코드로 옮기면서 가장 먼저)
+### 0. 구조 정리 (클로드 코드로 옮기면서 가장 먼저) — 2026-11-28 진행 중
+결정: Vite + 바닐라 JS(동작 그대로 파일만 나눔), GitHub Actions 배포. 남은 것: 규칙 테스트 실제 실행(Java 설치 뒤), 에뮬레이터에서 기능 하나씩 확인, Blaze·예산 알림.
 - 단일 index.html → 여러 파일로 나누기(예: Vite + 바닐라 JS 모듈 또는 가벼운 프레임워크 — 원제님께 의견 드리고 결정). GitHub Pages 배포는 빌드 결과물로.
 - Firebase CLI + 에뮬레이터(Auth·Firestore·Functions·Storage)로 시험 환경 만들기. 보안 규칙 테스트 코드 작성.
 - 지금 기능(채널·DM·스레드·반응·멘션·수정/삭제·안 읽은 개수·비공개 채널·프로젝트 할 일 보드·카카오톡 안내)이 그대로 동작해야 함.

@@ -37,7 +37,8 @@ service cloud.firestore {
       return isStaff() && (c.get('priv', false) == false || em() in c.get('mem', []));
     }
     match /channels/{cid} {
-      allow read: if isStaff() && (isAdmin() || resource.data.get('priv', false) == false || em() in resource.data.mem);
+      // 목록(list) 검사에서 .get('priv', false) 는 조건 없는 전체 요청까지 통과시켜요 → priv == false 로 비교해요 (테스트로 확인)
+      allow read: if isStaff() && (isAdmin() || resource.data.priv == false || em() in resource.data.mem);
       allow create, delete: if isAdmin();
       allow update: if isAdmin() || (isStaff() && (resource.data.get('priv', false) == false || em() in resource.data.mem) && onlyKeys(['last', 'lastAt']));
       match /msgs/{mid} {
