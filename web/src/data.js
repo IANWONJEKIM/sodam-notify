@@ -4,6 +4,7 @@ import { ms, toast, errMsg } from './util.js';
 import { isAdmin, chan, vis, joined, soon, narrow, S, UN } from './state.js';
 import { stopConv, openConv } from './conv.js';
 import { autoJoin } from './chmem.js';
+import { readHash, jump } from './msgact.js';
 import { render } from './ui/render.js';
 
 function start() {
@@ -12,6 +13,11 @@ function start() {
   S.dms = [];
   S.users = {};
   S.loaded = {};
+  S.saved = [];
+  S.acts = [];
+  S.tab = 'home';
+  /* 메시지 링크로 들어왔으면 목록이 오면 그 메시지로 가요 */
+  S.pendJump = readHash();
   UN.push(
     db.collection('staff').onSnapshot(function (s) {
       S.staff = {};
@@ -90,6 +96,7 @@ function start() {
       }
     }
     autoJoin();
+    if (S.pendJump) jump(S.pendJump);
     if (!S.view && !narrow()) {
       var f0 = S.channels.filter(function (c) {
         return joined(c) && c.kind !== 'proj';
@@ -152,6 +159,44 @@ function start() {
             .sort(function (a, b) {
               return ms(b.lastAt) - ms(a.lastAt);
             });
+          S.loaded.dm = true;
+          if (S.pendJump) jump(S.pendJump);
+          soon();
+        },
+        function () {},
+      ),
+  );
+  /* 나중에 보기 · 내 활동 (본인 것만) */
+  var me = db.collection('users').doc(S.u.uid);
+  UN.push(
+    me
+      .collection('saved')
+      .orderBy('at', 'desc')
+      .limit(200)
+      .onSnapshot(
+        function (s) {
+          S.saved = s.docs.map(function (d) {
+            var o = d.data();
+            o.id = d.id;
+            return o;
+          });
+          soon();
+        },
+        function () {},
+      ),
+  );
+  UN.push(
+    me
+      .collection('act')
+      .orderBy('at', 'desc')
+      .limit(60)
+      .onSnapshot(
+        function (s) {
+          S.acts = s.docs.map(function (d) {
+            var o = d.data();
+            o.id = d.id;
+            return o;
+          });
           soon();
         },
         function () {},

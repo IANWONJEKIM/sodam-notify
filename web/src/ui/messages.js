@@ -1,23 +1,38 @@
 /* 메시지 목록 · 스레드 그리기 */
-import { esc, ms, hm, dayKey, dayLabel, EMO } from '../util.js';
+import { esc, ms, hm, dayKey, dayLabel, toast, EMO } from '../util.js';
 import { isAdmin, nameOf, narrow, S } from '../state.js';
 import { av, fmt, compHTML } from '../ui/common.js';
 import { convTitle } from '../ui/layout.js';
+import { isSaved } from '../msgact.js';
+import { listen as listenMore } from '../conv.js';
 
 function msgHTML(x, prev, rid, root) {
   var cont =
       prev && prev.uid === x.uid && !prev.del && ms(x.at) - ms(prev.at) < 5 * 6e4 && dayKey(prev.at) === dayKey(x.at),
     mine = x.uid === S.u.uid,
     men = (x.men || []).indexOf(S.u.uid) >= 0 && !mine,
-    ids = ' data-id="' + esc(rid ? S.thread : x.id) + '"' + (rid ? ' data-rid="' + esc(x.id) + '"' : '');
+    ids = ' data-id="' + esc(rid ? S.thread : x.id) + '"' + (rid ? ' data-rid="' + esc(x.id) + '"' : ''),
+    key = rid || x.id,
+    pin = !rid && x.pinAt && !x.del,
+    sv = !x.del && S.view && (S.view.k === 'c' || S.view.k === 'd') && isSaved(rid ? S.thread : x.id, rid),
+    hl = S.jump && (rid ? S.jump.rid === x.id : !S.jump.rid && S.jump.mid === x.id);
+  if (pin || sv) cont = false;
   var h =
     '<div class="m' +
     (cont ? ' cont' : '') +
     (men ? ' men' : '') +
-    (S.emo === (rid || x.id) || S.act === (rid || x.id) ? ' act' : '') +
+    (pin ? ' pinned' : '') +
+    (hl ? ' hl' : '') +
+    (S.emo === key || S.menu === key ? ' act' : '') +
     '"' +
     ids +
     '>' +
+    (pin || sv
+      ? '<div class="mtag">' +
+        (pin ? '<span>📌 ' + esc(nameOf(x.pinBy)) + '님이 고정함</span>' : '') +
+        (sv ? '<span class="sv">🔖 나중에 보기</span>' : '') +
+        '</div>'
+      : '') +
     av(x.uid) +
     '<div>';
   if (!cont) h += '<div class="hd"><b>' + esc(nameOf(x.uid)) + '</b><time>' + hm(x.at) + '</time></div>';
@@ -31,7 +46,9 @@ function msgHTML(x, prev, rid, root) {
   else
     h += x.del
       ? '<div class="tx del">삭제된 메시지예요</div>'
-      : '<div class="tx">' + fmt(x.text) + (x.ed ? ' <span class="ed">(수정됨)</span>' : '') + '</div>';
+      : (x.text || !x.fwd
+          ? '<div class="tx">' + fmt(x.text) + (x.ed ? ' <span class="ed">(수정됨)</span>' : '') + '</div>'
+          : '') + (x.fwd ? fwdHTML(x.fwd) : '');
   var re = x.re || {},
     rk = EMO.filter(function (e) {
       return re[e[0]] && re[e[0]].length;
@@ -76,15 +93,23 @@ function msgHTML(x, prev, rid, root) {
       '개 <small>' +
       (x.lastReplyAt ? dayLabel(x.lastReplyAt) + ' ' + hm(x.lastReplyAt) : '') +
       '</small></button>';
-  if (!x.del)
+  /* PC: 마우스를 올리면 도구 막대 · 휴대폰은 길게 누르면 아래 메뉴(.acts는 숨김) */
+  if (!x.del && !narrow())
     h +=
       '<div class="acts"><button data-act="emo"' +
       ids +
-      ' title="반응">😀</button>' +
-      (rid ? '' : '<button data-act="thread" data-id="' + esc(x.id) + '" title="답글">💬</button>') +
-      (mine ? '<button data-act="edit"' + ids + ' title="고치기">✏️</button>' : '') +
-      (mine || (isAdmin() && S.view.k === 'c') ? '<button data-act="del"' + ids + ' title="지우기">🗑</button>' : '') +
-      '</div>';
+      ' title="반응" aria-label="반응">😀</button>' +
+      (rid ? '' : '<button data-act="thread" data-id="' + esc(x.id) + '" title="답글" aria-label="답글">💬</button>') +
+      '<button data-act="save"' +
+      ids +
+      ' title="' +
+      (sv ? '나중에 보기에서 빼기' : '나중에 보기') +
+      '" aria-label="나중에 보기"' +
+      (sv ? ' class="on"' : '') +
+      '>🔖</button><button data-act="menu"' +
+      ids +
+      ' title="더 보기" aria-label="더 보기">⋯</button></div>';
+  if (S.menu === key && !narrow()) h += '<div class="mmenu" role="menu">' + menuItems(x, rid, ids) + '</div>';
   if (S.emo === (rid || x.id))
     h +=
       '<div class="emo">' +
@@ -93,6 +118,45 @@ function msgHTML(x, prev, rid, root) {
       }).join('') +
       '</div>';
   return h + '</div></div>';
+}
+/* ⋯ 메뉴 · 휴대폰 아래 메뉴에 같이 쓰는 항목 */
+function menuItems(x, rid, ids) {
+  var mine = x.uid === S.u.uid,
+    it = function (act, icon, label, cls) {
+      return (
+        '<button role="menuitem" data-act="' +
+        act +
+        '"' +
+        ids +
+        (cls ? ' class="' + cls + '"' : '') +
+        '><span>' +
+        icon +
+        '</span>' +
+        label +
+        '</button>'
+      );
+    };
+  return (
+    (rid ? '' : it('pin', '📌', x.pinAt ? '고정 풀기' : '채널에 고정')) +
+    it('fwd', '↪', '전달하기') +
+    it('link', '🔗', '링크 복사') +
+    (x.text ? it('copy', '📋', '글 복사') : '') +
+    (mine && !x.fwd ? it('edit', '✏️', '고치기') : '') +
+    (mine || (isAdmin() && S.view.k === 'c') ? it('del', '🗑', '지우기', 'bad') : '')
+  );
+}
+function fwdHTML(f) {
+  return (
+    '<div class="fwdq"><div class="small muted">↪ ' +
+    esc(nameOf(f.uid)) +
+    '님 메시지 전달' +
+    (f.at ? ' · ' + dayLabel(f.at) + ' ' + hm(f.at) : '') +
+    '</div><div class="tx">' +
+    fmt(f.text || '') +
+    '</div><button class="lk small" data-act="gomsg" data-v="' +
+    esc([f.k, f.cid, f.mid, f.rid || ''].join('/')) +
+    '">원래 메시지 보기</button></div>'
+  );
 }
 function listHTML(L, rid) {
   var h = '',
@@ -140,7 +204,37 @@ function renderMsgs() {
     el.scrollTop = el.scrollHeight - oh + ot;
     S.keepTop = false;
   }
+  doJump(el, false);
   if (S.thread) renderThread();
+}
+/* 링크·활동·고정에서 온 메시지로 스크롤하고 잠깐 밝게 */
+function doJump(el, inThread) {
+  var j = S.jump;
+  if (!j || !!j.rid !== inThread || j.done) return;
+  var t = el.querySelector('.m.hl');
+  if (!t) {
+    /* 오래된 메시지라 아직 안 불러왔으면 알려 줘요 (한 번만) */
+    if (!inThread && S.msgs.length && !S.more && !j.told) {
+      j.told = true;
+      toast('메시지를 찾지 못했어요 (지워졌을 수 있어요)');
+    } else if (!inThread && S.more && Date.now() - j.at < 8000 && !S.loadingMore) {
+      /* 더 위에 있으면 조금 더 불러와요 */
+      S.loadingMore = true;
+      S.lim += 100;
+      S.keepTop = true;
+      setTimeout(function () {
+        S.loadingMore = false;
+      }, 600);
+      listenMore();
+    }
+    return;
+  }
+  j.done = true;
+  t.scrollIntoView({ block: 'center' });
+  setTimeout(function () {
+    if (S.jump === j) S.jump = null;
+    t.classList.remove('hl');
+  }, 2600);
 }
 function renderThread() {
   var el = document.getElementById('tmsgs');
@@ -155,6 +249,7 @@ function renderThread() {
       ? '<div class="tcnt">답글 ' + S.replies.length + '개</div>' + listHTML(S.replies, true)
       : '<div class="empty" style="padding:20px">첫 답글을 달아 보세요.</div>');
   if (near) el.scrollTop = el.scrollHeight;
+  doJump(el, true);
 }
 
-export { msgHTML, listHTML, threadHTML, renderMsgs, renderThread };
+export { msgHTML, menuItems, listHTML, threadHTML, renderMsgs, renderThread };

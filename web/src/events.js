@@ -14,6 +14,20 @@ import { renderCmts } from './ui/board.js';
 import { render } from './ui/render.js';
 import { adminAct, openCset, csBack, csetSave } from './admin.js';
 import { mpUpdate, mpPick, MP } from './mention.js';
+import { renderOverlay } from './ui/overlay.js';
+import {
+  findMsg,
+  togglePin,
+  toggleSave,
+  savedDone,
+  savedDel,
+  copyLink,
+  copyText,
+  jump,
+  forward,
+  actSeen,
+} from './msgact.js';
+import { actSeenAt } from './ui/tabs.js';
 
 function isComp(id) {
   return id === 'ta' || id === 'tta' || id === 'tkc';
@@ -23,6 +37,10 @@ document.addEventListener('input', function (ev) {
   if (isComp(t.id)) {
     grow(t);
     mpUpdate(t);
+  }
+  if (t.id === 'fw-q' && S.fwd) {
+    S.fwd.q = t.value;
+    renderOverlay();
   }
   /* 채널 찾아보기 검색: 목록만 다시 그려요 (입력칸은 그대로) */
   if (t.id === 'br-q') {
@@ -103,6 +121,13 @@ document.addEventListener('keydown', function (ev) {
       saveEdit(m.getAttribute('data-id'), m.getAttribute('data-rid'), t.value);
     }
   }
+  if (ev.key === 'Escape' && (S.sheet || S.fwd || S.menu)) {
+    S.sheet = S.fwd = S.menu = null;
+    renderOverlay();
+    renderMsgs();
+    renderThread();
+    return;
+  }
   if (ev.key === 'Escape' && S.emo) {
     S.emo = null;
     renderMsgs();
@@ -116,17 +141,19 @@ document.addEventListener('click', function (ev) {
     renderMsgs();
     renderThread();
   }
-  if (!b && narrow()) {
-    var mm = ev.target.closest('.m');
-    if (mm && !ev.target.closest('a')) {
-      var k = mm.getAttribute('data-rid') || mm.getAttribute('data-id');
-      S.act = S.act === k ? null : k;
-      renderMsgs();
-      renderThread();
-      return;
-    }
+  if (S.menu && (!b || b.getAttribute('data-act') !== 'menu')) {
+    S.menu = null;
+    renderMsgs();
+    renderThread();
   }
+  /* 길게 누른 직후 손을 뗄 때 생기는 클릭은 무시해요 */
+  if (Date.now() - LP.fired < 600 && !(b && b.closest('#ov'))) return;
   if (!b || b.disabled) return;
+  /* 아래 메뉴·전달 창에서 고르면 닫아요 (지우기는 두 번 눌러야 해서 제외) */
+  if (b.closest('#ov') && S.sheet && ['del', 'ovclose', 'fwto', 'fwgo'].indexOf(b.getAttribute('data-act')) < 0) {
+    S.sheet = null;
+    renderOverlay();
+  }
   var a = b.getAttribute('data-act'),
     id = b.getAttribute('data-id'),
     rid = b.getAttribute('data-rid'),
@@ -316,6 +343,7 @@ document.addEventListener('click', function (ev) {
   }
   if (a === 'mpick') return mpPick(v);
   if (a === 'thread') return openThread(id);
+  if (msgActs(a, b, id, rid, v)) return;
   if (a === 'tclose') return closeThread();
   if (a === 'more') {
     S.lim += 60;
@@ -369,6 +397,8 @@ document.addEventListener('click', function (ev) {
     }
     S.delAsk = null;
     delMsg(id, rid);
+    S.sheet = null;
+    renderOverlay();
     return;
   }
   adminAct(a, b);
@@ -398,6 +428,146 @@ window.addEventListener('resize', function () {
       render();
     }
   }, 150);
+});
+
+/* 메시지 메뉴 · 탭 · 고정 · 저장 · 전달 */
+function msgActs(a, b, id, rid, v) {
+  if (a === 'tabgo') {
+    if (S.tab === 'act' && v !== 'act') S.actPrev = null;
+    S.tab = v;
+    if (v === 'act') {
+      S.actPrev = actSeenAt(); /* 이번에 본 것 전까지만 '새 활동'으로 보여요 */
+      actSeen();
+    }
+    if (narrow()) S.pane = 'list';
+    render();
+    return true;
+  }
+  if (a === 'actf' || a === 'svf') {
+    S[a] = v;
+    render();
+    return true;
+  }
+  if (a === 'gomsg') {
+    var p = String(v || '').split('/');
+    S.sheet = S.fwd = null;
+    jump({ k: p[0], id: p[1], mid: p[2], rid: p[3] || '' });
+    return true;
+  }
+  if (a === 'menu') {
+    var mk = rid || id;
+    S.menu = S.menu === mk ? null : mk;
+    renderMsgs();
+    renderThread();
+    return true;
+  }
+  if (a === 'save') {
+    toggleSave(id, rid);
+    return true;
+  }
+  if (a === 'pin') {
+    togglePin(id);
+    return true;
+  }
+  if (a === 'link') {
+    copyLink(id, rid);
+    return true;
+  }
+  if (a === 'copy') {
+    copyText(id, rid);
+    return true;
+  }
+  if (a === 'fwd') {
+    var x = findMsg(id, rid);
+    if (!x) return true;
+    S.menu = null;
+    S.sheet = null;
+    S.fwd = { x: x, k: S.view.k, cid: S.view.id, mid: id, rid: rid || '', q: '', to: null };
+    renderMsgs();
+    renderOverlay();
+    setTimeout(function () {
+      var q = document.getElementById('fw-q');
+      if (q && !narrow()) q.focus();
+    }, 30);
+    return true;
+  }
+  if (a === 'fwto') {
+    var tb = b.querySelector('.nm');
+    S.fwd.to = { k: b.getAttribute('data-k'), id: id, name: tb ? tb.textContent : '' };
+    renderOverlay();
+    return true;
+  }
+  if (a === 'fwgo') {
+    var n = document.getElementById('fw-note');
+    forward(S.fwd && S.fwd.to, n ? n.value : '');
+    renderOverlay();
+    return true;
+  }
+  if (a === 'ovclose') {
+    S.sheet = S.fwd = null;
+    renderOverlay();
+    return true;
+  }
+  if (a === 'pins') {
+    if (!S.view || (S.view.k !== 'c' && S.view.k !== 'd')) return true;
+    closeThread(true);
+    S.view = { k: 'pins', ck: S.view.k, id: S.view.id };
+    render();
+    return true;
+  }
+  if (a === 'svdone' || a === 'svundo') {
+    savedDone(id, a === 'svdone');
+    return true;
+  }
+  if (a === 'svdel') {
+    savedDel(id);
+    return true;
+  }
+  return false;
+}
+
+/* 휴대폰: 메시지를 길게 누르면 아래 메뉴 */
+var LP = { t: null, x: 0, y: 0, fired: 0 };
+document.addEventListener(
+  'touchstart',
+  function (ev) {
+    var m = ev.target.closest && ev.target.closest('.m[data-id]');
+    if (!m || ev.touches.length > 1 || ev.target.closest('button, a, textarea, input') || m.querySelector('#eta'))
+      return;
+    LP.x = ev.touches[0].clientX;
+    LP.y = ev.touches[0].clientY;
+    clearTimeout(LP.t);
+    m.classList.add('press');
+    LP.t = setTimeout(function () {
+      m.classList.remove('press');
+      var x = findMsg(m.getAttribute('data-id'), m.getAttribute('data-rid'));
+      if (!x || x.del) return;
+      LP.fired = Date.now();
+      if (navigator.vibrate) navigator.vibrate(10);
+      S.emo = null;
+      S.sheet = { id: m.getAttribute('data-id'), rid: m.getAttribute('data-rid') || '' };
+      renderOverlay();
+    }, 450);
+  },
+  { passive: true },
+);
+function lpCancel() {
+  clearTimeout(LP.t);
+  var p = document.querySelector('.m.press');
+  if (p) p.classList.remove('press');
+}
+document.addEventListener(
+  'touchmove',
+  function (ev) {
+    if (Math.abs(ev.touches[0].clientX - LP.x) > 10 || Math.abs(ev.touches[0].clientY - LP.y) > 10) lpCancel();
+  },
+  { passive: true },
+);
+document.addEventListener('touchend', lpCancel, { passive: true });
+document.addEventListener('touchcancel', lpCancel, { passive: true });
+/* 길게 누를 때 뜨는 브라우저 메뉴(복사·공유) 대신 우리 메뉴 */
+document.addEventListener('contextmenu', function (ev) {
+  if (narrow() && ev.target.closest && ev.target.closest('.m[data-id]') && !ev.target.closest('a')) ev.preventDefault();
 });
 
 export { isComp };

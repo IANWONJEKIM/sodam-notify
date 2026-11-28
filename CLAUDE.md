@@ -20,6 +20,8 @@
 - `npm run dev` — 에뮬레이터에 붙는 앱(http://localhost:5173/app/). 가짜 구글 계정으로 wonjea47@gmail.com 을 넣으면 관리자로 시작.
 - `npm run dev:live` — 진짜 Firebase에 붙는 앱(조심).
 - `npm run test:rules` · `npm run lint` · `npm run build` · `npm run format`
+- `npm run seed` — (에뮬레이터 켠 상태) 에뮬레이터 데이터를 비우고 시험 직원(김민아·이수아·박준)을 넣어요. 앱 개발자 도구에서 `__as('mina@sodam.test')`로 계정을 바로 바꿔요(에뮬레이터 전용).
+  - 주의: 에뮬레이터가 켜진 채로 `npx vitest`를 돌리면 테스트가 에뮬레이터 데이터를 지워요 → 뒤에 `npm run seed`.
 - Functions 에뮬레이터는 2단계에서 `functions/` 폴더를 만들 때 켜져요(포트 5001 예약).
 
 ## Firebase (프로젝트 sodam-notify)
@@ -38,6 +40,9 @@
 - `dms/{작은uid_큰uid}` {m:[uid,uid], last, lastAt} → `msgs` → `replies`. **DM은 두 사람만 읽기/쓰기**(관리자도 못 봄, 규칙으로 보장).
   - 그룹 DM(2026-11-28): `dms/g_{임의}` {m:[uid 3~8명], g:true}. 멤버만 읽기/쓰기, 멤버는 나중에 못 바꿈. 같은 멤버 방이 있으면 그 방을 엶.
 - 채널 들어가기·나가기(2026-11-28): 공개 채널도 `mem` = 들어간 사람. 직원은 규칙상 **자기 자신만** 넣고 뺌(비공개는 나가기만). 사이드바엔 들어간 채널만, '채널 찾아보기'에서 미리 보기·들어가기. 처음 접속할 때 공개 채널 전부에 자동으로 들어감(`users/{uid}.chInit`). 공개 채널은 직원 누구나 만듦(비공개·프로젝트는 관리자만).
+- 메시지 다루기(2026-11-28): 고정 = msg {pinAt, pinBy}(멤버 누구나, pinBy는 나로만) · 나중에 보기 = `users/{uid}/saved/{c_id_mid[_rid]}`(본인만) · 전달 = 새 msg에 `fwd{uid,text,k,cid,mid,rid,at}` · 링크 = `/app/#m/{c|d}/{id}/{mid}[/{rid}]`
+- 내 활동: 보낸 사람이 받는 사람의 `users/{uid}/act/{men_|rp_|re_…}` {t, from, k, cid, mid, rid, emo, text(120자), at} 에 남김. 받는 사람만 읽음, 규칙이 '받는 사람도 그 대화를 볼 수 있는지' 확인. @전체는 활동에 안 남김. 활동 본 시각 = `users/{uid}/reads/act`.
+- 화면: PC 맨 왼쪽 세로 탭(홈·DM·내 활동·나중에), 휴대폰은 목록 화면 아래 탭. 메시지 메뉴: PC 마우스 올리기(😀 💬 🔖 ⋯), 휴대폰 길게 누르기 → 아래 메뉴.
 - 팀: MANAGER · MD · OPERATION · VMD · PT
 - 카카오톡 등 앱 안 브라우저는 구글 로그인이 막혀요 → 카카오톡은 `kakaotalk://web/openExternal`로 기본 브라우저로 넘기고, 나머지는 '사파리·크롬에서 열기' 안내.
 - 화면: PC 3단(목록·대화·스레드), 휴대폰 한 화면씩. Enter 보내기, @이름 멘션 자동완성, 이모지 반응, 수정·삭제, 안 읽음 점.

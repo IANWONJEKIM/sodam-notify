@@ -1,10 +1,25 @@
 /* 사이드바 · 가운데 화면 */
 import { db } from '../firebase.js';
 import { esc, md } from '../util.js';
-import { isAdmin, nameOf, convRef, dmOther, dmOthers, dmName, joined, chan, dm, vis, sname, S } from '../state.js';
+import {
+  isAdmin,
+  nameOf,
+  convRef,
+  dmOther,
+  dmOthers,
+  dmName,
+  joined,
+  chan,
+  dm,
+  vis,
+  sname,
+  narrow,
+  S,
+} from '../state.js';
 import { ucount, cntHTML } from '../unread.js';
 import { av, pav, gav, compHTML } from '../ui/common.js';
 import { boardHTML } from '../ui/board.js';
+import { botHTML, dmTabHTML, actTabHTML, savedTabHTML } from '../ui/tabs.js';
 import { adminHTML, newdmHTML, csetHTML } from '../admin.js';
 
 function convTitle(v) {
@@ -26,8 +41,27 @@ function convTitle(v) {
   if (d && d.g) return esc(dmName(d)) + '<small>그룹 DM · ' + (d.m || []).length + '명</small>';
   return d ? esc(nameOf(dmOther(d))) + (dmOther(d) === S.u.uid ? ' <small>나에게 메모</small>' : '') : 'DM';
 }
+/* 나 (사진·이름·로그아웃) */
+function meHTML() {
+  return (
+    '<div class="me">' +
+    av(S.u.uid) +
+    '<span class="nm"><b>' +
+    esc(nameOf(S.u.uid)) +
+    '</b><br><span style="color:var(--side-muted);font-size:12px">' +
+    esc(S.email) +
+    '</span></span><button data-act="logout">로그아웃</button></div>'
+  );
+}
+/* 왼쪽 목록: 탭에 따라 홈(채널·DM) / DM / 내 활동 / 나중에 보기.
+   휴대폰은 아래 탭 막대를 붙이고, '나'는 홈 목록 맨 아래에 둬요 */
 function sideHTML() {
-  var h = '<div class="ws"><img src="../icon-192.png" alt=""><b>소담상회</b></div><div class="slist">';
+  var ws = '<div class="ws"><img src="../icon-192.png" alt=""><b>소담상회</b></div>',
+    foot = narrow() ? botHTML() : meHTML();
+  if (S.tab === 'dm') return ws + '<div class="slist tab">' + dmTabHTML() + '</div>' + foot;
+  if (S.tab === 'act') return ws + '<div class="slist tab">' + actTabHTML() + '</div>' + foot;
+  if (S.tab === 'saved') return ws + '<div class="slist tab">' + savedTabHTML() + '</div>' + foot;
+  var h = ws + '<div class="slist">';
   function chItem(c) {
     var k = 'c_' + c.id,
       on = S.view && S.view.k === 'c' && S.view.id === c.id,
@@ -114,16 +148,7 @@ function sideHTML() {
       '<div class="sh">관리</div><button class="si' +
       (S.view && S.view.k === 'admin' ? ' on' : '') +
       '" data-act="admin" data-v="staff"><span class="hash">⚙</span><span class="nm">직원 · 채널 관리</span></button>';
-  return (
-    h +
-    '</div><div class="me">' +
-    av(S.u.uid) +
-    '<span class="nm"><b>' +
-    esc(nameOf(S.u.uid)) +
-    '</b><br><span style="color:var(--side-muted);font-size:12px">' +
-    esc(S.email) +
-    '</span></span><button data-act="logout">로그아웃</button></div>'
-  );
+  return h + (narrow() ? meHTML() + '</div>' : '</div>') + foot;
 }
 function mainHTML() {
   var v = S.view;
@@ -135,7 +160,9 @@ function mainHTML() {
     );
   if (v.k === 'newdm')
     return (
-      '<div class="top"><button class="back" data-act="back" aria-label="뒤로">‹</button><h2>새 DM</h2></div>' +
+      '<div class="top"><button class="back" data-act="back" aria-label="뒤로">‹</button><h2>새 DM</h2><button class="btn sm" data-act="dmgo"' +
+      ((S.nd || []).length ? '' : ' disabled') +
+      '>대화하기</button></div>' +
       newdmHTML()
     );
   if (v.k === 'cset') return csetHTML();
@@ -146,6 +173,7 @@ function mainHTML() {
       browseHTML()
     );
   if (v.k === 'cinfo') return cinfoHTML(chan(v.id));
+  if (v.k === 'pins') return pinsHTML(v);
   var c = v.k === 'c' ? chan(v.id) : null,
     d0 = v.k === 'd' ? dm(v.id) : null,
     ph =
@@ -154,14 +182,22 @@ function mainHTML() {
         : d0 && d0.g
           ? dmName(d0) + '에게 메시지'
           : nameOf(d0 ? dmOther(d0) : '') + '님에게 메시지';
-  var tool = c
-    ? '<button class="btn sm ghost" data-act="cinfo" data-id="' +
-      esc(c.id) +
-      '" title="멤버 · 채널 정보">👥 ' +
-      (c.mem || []).length +
-      '</button>' +
-      (isAdmin() ? '<button class="btn sm ghost" data-act="cset" data-id="' + esc(c.id) + '">설정</button>' : '')
-    : '';
+  var pinb =
+    '<button class="btn sm ghost" data-act="pins" title="고정된 메시지"' +
+    (S.pins.length ? '' : ' hidden') +
+    '>📌 <span class="n">' +
+    S.pins.length +
+    '</span></button>';
+  var tool =
+    pinb +
+    (c
+      ? '<button class="btn sm ghost" data-act="cinfo" data-id="' +
+        esc(c.id) +
+        '" title="멤버 · 채널 정보">👥 ' +
+        (c.mem || []).length +
+        '</button>' +
+        (isAdmin() ? '<button class="btn sm ghost" data-act="cset" data-id="' + esc(c.id) + '">설정</button>' : '')
+      : '');
   var h =
     '<div class="top"><button class="back" data-act="back" aria-label="목록으로">‹</button><h2>' +
     convTitle(v) +
@@ -245,6 +281,42 @@ function browseList() {
         }).join('')
       : '<p class="muted" style="margin:0">' + (q ? '찾는 채널이 없어요.' : '아직 채널이 없어요.') + '</p>')
   );
+}
+/* 고정된 메시지 목록 */
+function pinsHTML(v) {
+  var back =
+    '<button class="back" data-act="open" data-k="' +
+    v.ck +
+    '" data-id="' +
+    esc(v.id) +
+    '" aria-label="대화로">‹</button>';
+  var h =
+    '<div class="top">' +
+    back +
+    '<h2>📌 고정된 메시지 <small>' +
+    convTitle({ k: v.ck, id: v.id }).replace(/<small>.*<\/small>/, '') +
+    '</small></h2><button class="btn sm ghost" data-act="open" data-k="' +
+    v.ck +
+    '" data-id="' +
+    esc(v.id) +
+    '">대화로</button></div><div class="page"><div class="card">';
+  if (!S.pins.length)
+    h += '<p class="muted" style="margin:0">고정된 메시지가 없어요. 메시지 메뉴에서 📌 채널에 고정을 눌러요.</p>';
+  S.pins.forEach(function (x) {
+    h +=
+      '<div class="srow"><button class="who lk" data-act="gomsg" data-v="' +
+      esc([v.ck, v.id, x.id, ''].join('/')) +
+      '"><b>' +
+      av(x.uid, 1) +
+      ' ' +
+      esc(nameOf(x.uid)) +
+      '</b><span class="small muted">' +
+      esc(String(x.text || (x.fwd ? '↪ ' + (x.fwd.text || '') : '')).slice(0, 140)) +
+      '</span><span class="small muted">📌 ' +
+      esc(nameOf(x.pinBy)) +
+      '님이 고정</span></button></div>';
+  });
+  return h + '</div></div>';
 }
 /* 채널 정보 · 멤버 목록 · 나가기 */
 function cinfoHTML(c) {

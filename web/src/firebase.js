@@ -13,6 +13,15 @@ if (EMU) {
   auth.useEmulator('http://127.0.0.1:9099', { disableWarnings: true });
   db.useEmulator('127.0.0.1', 8080);
   console.info('[소담] 에뮬레이터에 연결했어요 (진짜 데이터 아님)');
+  /* 에뮬레이터 전용: 시험 계정으로 바로 바꿔 들어가기 · __as('mina@sodam.test') */
+  window.__as = function (email, name) {
+    var c = firebase.auth.GoogleAuthProvider.credential(
+      JSON.stringify({ sub: 'g-' + email, email: email, email_verified: true, name: name || email.split('@')[0] }),
+    );
+    return auth.signOut().then(function () {
+      return auth.signInWithCredential(c);
+    });
+  };
 } else {
   try {
     db.enablePersistence({ synchronizeTabs: true }).catch(function () {});

@@ -123,13 +123,11 @@ function newdmHTML() {
     }),
     full = others.length >= GMAX - 1;
   var go =
-    '<div class="row"><span class="small muted">' +
+    '<p class="small muted" style="margin:0">' +
     (sel.length
       ? sel.map(nameOf).map(esc).join(', ') + (others.length >= 2 ? ' · 그룹 DM ' + (others.length + 1) + '명' : '')
       : '여러 명을 고르면 그룹 DM이 돼요 (나 포함 ' + GMAX + '명까지)') +
-    '</span><span class="sp"></span><button class="btn" data-act="dmgo"' +
-    (sel.length ? '' : ' disabled') +
-    '>대화하기</button></div>';
+    '</p>';
   return (
     '<div class="page"><div class="card"><h3>누구와 대화할까요?</h3>' +
     go +

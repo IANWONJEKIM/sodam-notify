@@ -15,6 +15,7 @@ import {
   serverTimestamp,
   arrayUnion,
   arrayRemove,
+  deleteField,
 } from 'firebase/firestore';
 
 const OWNER = 'wonjea47@gmail.com';
@@ -247,5 +248,73 @@ describe('그룹 DM', () => {
   it('멤버를 나중에 바꾸지 못해요', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), 'dms', 'g_x'), g));
     await assertFails(updateDoc(doc(as(P.a), 'dms', 'g_x'), { m: ['uA', 'uB', 'uC', 'uD'] }));
+  });
+});
+
+describe('고정 · 나중에 보기', () => {
+  it('멤버는 남의 메시지를 고정·해제해요 (고정한 사람은 나로만)', async () => {
+    const ref = (p) => doc(as(p), 'channels', 'pub', 'msgs', 'm1');
+    await assertSucceeds(updateDoc(ref(P.a), { pinAt: serverTimestamp(), pinBy: P.a.uid }));
+    await assertFails(updateDoc(ref(P.a), { pinAt: serverTimestamp(), pinBy: P.c.uid }));
+    await assertSucceeds(updateDoc(ref(P.c), { pinAt: deleteField(), pinBy: deleteField() }));
+    await assertFails(updateDoc(ref(P.a), { pinAt: serverTimestamp(), pinBy: P.a.uid, text: '바꿈' }));
+  });
+  it('비공개 채널·DM 밖 사람은 고정 못 해요', async () => {
+    await assertFails(
+      updateDoc(doc(as(P.b), 'channels', 'sec', 'msgs', 'm1'), { pinAt: serverTimestamp(), pinBy: P.b.uid }),
+    );
+    await assertFails(
+      updateDoc(doc(as(P.c), 'dms', 'uA_uB', 'msgs', 'm1'), { pinAt: serverTimestamp(), pinBy: P.c.uid }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(as(P.b), 'dms', 'uA_uB', 'msgs', 'm1'), { pinAt: serverTimestamp(), pinBy: P.b.uid }),
+    );
+  });
+  it('저장 목록은 본인만 보고 써요', async () => {
+    await assertSucceeds(setDoc(doc(as(P.a), 'users', P.a.uid, 'saved', 'c_pub_m1'), { mid: 'm1' }));
+    await assertFails(getDoc(doc(as(P.b), 'users', P.a.uid, 'saved', 'c_pub_m1')));
+    await assertFails(setDoc(doc(as(P.b), 'users', P.a.uid, 'saved', 'x'), { mid: 'm1' }));
+  });
+});
+
+describe('내 활동', () => {
+  const act = (from, extra = {}) => ({
+    t: 'men',
+    from: from.uid,
+    k: 'c',
+    cid: 'pub',
+    mid: 'm2',
+    text: '@B 확인해 주세요',
+    at: serverTimestamp(),
+    ...extra,
+  });
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'users', P.b.uid), { email: P.b.email, name: 'B' });
+      await setDoc(doc(db, 'users', P.c.uid), { email: P.c.email, name: 'C' });
+    });
+  });
+  it('내 이름으로, 받는 사람도 볼 수 있는 대화에만 남겨요', async () => {
+    await assertSucceeds(setDoc(doc(as(P.a), 'users', P.b.uid, 'act', 'x1'), act(P.a)));
+    await assertFails(setDoc(doc(as(P.a), 'users', P.b.uid, 'act', 'x2'), act(P.c)));
+    await assertFails(setDoc(doc(as(P.a), 'users', P.a.uid, 'act', 'x3'), act(P.a)));
+    await assertFails(setDoc(doc(as(P.a), 'users', P.b.uid, 'act', 'x4'), act(P.a, { secret: 1 })));
+    await assertFails(setDoc(doc(as(P.a), 'users', P.b.uid, 'act', 'x5'), act(P.a, { text: 'x'.repeat(121) })));
+  });
+  it('비공개 채널 내용은 멤버 아닌 사람에게 못 남겨요', async () => {
+    await assertFails(setDoc(doc(as(P.a), 'users', P.b.uid, 'act', 'x6'), act(P.a, { cid: 'sec' })));
+    await assertFails(setDoc(doc(as(P.c), 'users', P.a.uid, 'act', 'x7'), act(P.c, { cid: 'sec' })));
+  });
+  it('DM은 두 사람 사이에서만 남겨요', async () => {
+    await assertSucceeds(setDoc(doc(as(P.a), 'users', P.b.uid, 'act', 'x8'), act(P.a, { k: 'd', cid: 'uA_uB' })));
+    await assertFails(setDoc(doc(as(P.a), 'users', P.c.uid, 'act', 'x9'), act(P.a, { k: 'd', cid: 'uA_uB' })));
+  });
+  it('활동은 받는 사람만 읽고, 남긴 사람은 지울 수만 있어요', async () => {
+    await assertSucceeds(setDoc(doc(as(P.a), 'users', P.b.uid, 'act', 'x1'), act(P.a)));
+    await assertSucceeds(getDocs(collection(as(P.b), 'users', P.b.uid, 'act')));
+    await assertFails(getDocs(collection(as(P.a), 'users', P.b.uid, 'act')));
+    await assertFails(getDocs(collection(as(P.c), 'users', P.b.uid, 'act')));
+    await assertSucceeds(deleteDoc(doc(as(P.a), 'users', P.b.uid, 'act', 'x1')));
   });
 });

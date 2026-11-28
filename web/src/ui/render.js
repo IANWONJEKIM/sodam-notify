@@ -5,6 +5,8 @@ import { grow } from '../ui/common.js';
 import { threadHTML, renderMsgs } from '../ui/messages.js';
 import { sideHTML, mainHTML } from '../ui/layout.js';
 import { taskHTML, renderCmts } from '../ui/board.js';
+import { railHTML } from '../ui/tabs.js';
+import { renderOverlay } from '../ui/overlay.js';
 
 function render() {
   if (!S.u || !S.me) return;
@@ -18,7 +20,9 @@ function render() {
     (side2 && !narrow() ? ' thr' : '') +
     '" data-pane="' +
     (narrow() ? S.pane : 'conv') +
-    '"><aside class="side">' +
+    '">' +
+    (narrow() ? '' : railHTML()) +
+    '<aside class="side">' +
     side +
     '</aside><main class="main">' +
     mainHTML() +
@@ -28,6 +32,7 @@ function render() {
   renderMsgs();
   renderCmts();
   restoreComposer(keep);
+  renderOverlay();
   var n = 0;
   S.channels.forEach(function (c) {
     if (vis(c) && joined(c)) n += UC['c_' + c.id] && unread('c_' + c.id, c) ? UC['c_' + c.id].n : 0;
@@ -58,6 +63,7 @@ var CK = [
   'cf-start',
   'cf-end',
   'br-q',
+  'fw-note',
 ];
 function snapComposer() {
   var o = { __k: S.lastVk };

@@ -26,6 +26,13 @@ var S = {
   tcm: [],
   cf: null,
   tkf: 'all',
+  tab: 'home' /* 아래·왼쪽 탭: home | dm | act | saved */,
+  saved: [],
+  acts: [],
+  pins: [],
+  menu: null /* PC ⋯ 메뉴가 열린 메시지 */,
+  sheet: null /* 휴대폰 아래 메뉴 {id, rid} */,
+  fwd: null /* 전달할 메시지 */,
 };
 var UN = [];
 function off() {
@@ -36,7 +43,13 @@ function off() {
   });
   UN = [];
 }
-var LS = { CUN: null, TUN: null, TKUN: null, TCUN: null }; /* 지금 듣고 있는 구독 해제 함수 (대화·스레드·할 일·댓글) */
+var LS = {
+  CUN: null,
+  TUN: null,
+  TKUN: null,
+  TCUN: null,
+  PUN: null,
+}; /* 지금 듣고 있는 구독 해제 함수 (대화·스레드·할 일·댓글) */
 function isAdmin() {
   return S.email === OWNER || !!(S.me && S.me.admin);
 }

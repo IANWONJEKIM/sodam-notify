@@ -6,6 +6,7 @@ import { unread } from './unread.js';
 import { listenTasks } from './tasks.js';
 import { renderMsgs, renderThread } from './ui/messages.js';
 import { render } from './ui/render.js';
+import { listenPins, stopPins } from './msgact.js';
 
 function stopConv() {
   if (LS.CUN) {
@@ -16,7 +17,11 @@ function stopConv() {
     LS.TKUN();
     LS.TKUN = null;
   }
+  stopPins();
   S.tasks = [];
+  S.pins = [];
+  S.menu = null;
+  S.sheet = null;
   closeThread(true);
 }
 function openConv(v) {
@@ -34,6 +39,7 @@ function openConv(v) {
   S.pane = 'conv';
   S.atBottom = true;
   listen();
+  listenPins();
   if (v.tab) listenTasks();
   markRead();
   render();

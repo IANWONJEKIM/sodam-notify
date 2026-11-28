@@ -4,6 +4,7 @@ import { toast, errMsg } from './util.js';
 import { nameOf, convRef, S } from './state.js';
 import { tkRef } from './tasks.js';
 import { renderMsgs, renderThread } from './ui/messages.js';
+import { findMsg, actMention, actReply, actReact } from './msgact.js';
 
 function mentions(text) {
   var out = [];
@@ -35,9 +36,15 @@ function send(text, which) {
   if (which === 'tta') {
     var mid = S.thread,
       pr = ref.collection('msgs').doc(mid);
+    var parent = findMsg(mid);
     pr.collection('replies')
       .add(m)
-      .then(function () {
+      .then(function (r) {
+        /* 활동 기록은 지금 대화 기준이라, 그사이 다른 방으로 옮겼으면 건너뛰어요 */
+        if (S.view === v) {
+          actMention(m.men, mid, r.id, text);
+          actReply(parent, mid, r.id, text);
+        }
         return pr.update({ rc: FV.increment(1), lastReplyAt: FV.serverTimestamp(), ru: FV.arrayUnion(S.u.uid) });
       })
       .catch(function (e) {
@@ -49,7 +56,8 @@ function send(text, which) {
   ref
     .collection('msgs')
     .add(m)
-    .then(function () {
+    .then(function (r) {
+      if (S.view === v) actMention(m.men, r.id, '', text);
       return ref.update({ last: { text: text.slice(0, 80), by: S.u.uid }, lastAt: FV.serverTimestamp() });
     })
     .catch(function (e) {
@@ -67,11 +75,15 @@ function react(id, rid, key) {
     return x.id === (rid || id);
   })[0];
   if (!list) return;
-  var has = ((list.re || {})[key] || []).indexOf(S.u.uid) >= 0,
+  var v0 = S.view,
+    has = ((list.re || {})[key] || []).indexOf(S.u.uid) >= 0,
     up = {};
   up['re.' + key] = has ? FV.arrayRemove(S.u.uid) : FV.arrayUnion(S.u.uid);
   msgRef(id, rid)
     .update(up)
+    .then(function () {
+      if (S.view === v0) actReact(list, id, rid, key, !has);
+    })
     .catch(function (e) {
       toast(errMsg(e));
     });
