@@ -19,7 +19,7 @@ import {
 import { ucount, cntHTML } from '../unread.js';
 import { av, pav, gav, compHTML } from '../ui/common.js';
 import { boardHTML } from '../ui/board.js';
-import { botHTML, dmTabHTML, actTabHTML, savedTabHTML } from '../ui/tabs.js';
+import { botHTML, actTabHTML } from '../ui/tabs.js';
 import { adminHTML, newdmHTML, csetHTML } from '../admin.js';
 
 function convTitle(v) {
@@ -58,10 +58,12 @@ function meHTML() {
 function sideHTML() {
   var ws = '<div class="ws"><img src="../icon-192.png" alt=""><b>소담상회</b></div>',
     foot = narrow() ? botHTML() : meHTML();
-  if (S.tab === 'dm') return ws + '<div class="slist tab">' + dmTabHTML() + '</div>' + foot;
   if (S.tab === 'act') return ws + '<div class="slist tab">' + actTabHTML() + '</div>' + foot;
-  if (S.tab === 'saved') return ws + '<div class="slist tab">' + savedTabHTML() + '</div>' + foot;
-  var h = ws + '<div class="slist">';
+  var h =
+    ws +
+    '<div class="slist"><button class="si' +
+    (S.view && S.view.k === 'cal' ? ' on' : '') +
+    '" data-act="cal"><span class="hash">📅</span><span class="nm">캘린더</span></button>';
   function chItem(c) {
     var k = 'c_' + c.id,
       on = S.view && S.view.k === 'c' && S.view.id === c.id,
@@ -168,12 +170,16 @@ function mainHTML() {
   if (v.k === 'cset') return csetHTML();
   if (v.k === 'browse')
     return (
-      '<div class="top"><button class="back" data-act="back" aria-label="뒤로">‹</button><h2>채널 찾아보기</h2>' +
-      '<button class="btn sm" data-act="cset" data-v="pub">+ 채널 만들기</button></div>' +
+      '<div class="top"><button class="back" data-act="back" aria-label="뒤로">‹</button><h2>채널 찾아보기</h2></div>' +
       browseHTML()
     );
   if (v.k === 'cinfo') return cinfoHTML(chan(v.id));
   if (v.k === 'pins') return pinsHTML(v);
+  if (v.k === 'cal')
+    return (
+      '<div class="top"><button class="back" data-act="back" aria-label="뒤로">‹</button><h2>📅 캘린더</h2></div>' +
+      '<div class="page"><div class="card"><h3>준비 중이에요</h3><p class="muted" style="margin:0">직원별 근무·휴무와 매장 이벤트를 달력으로 보는 화면이 들어올 자리예요.</p></div></div>'
+    );
   var c = v.k === 'c' ? chan(v.id) : null,
     d0 = v.k === 'd' ? dm(v.id) : null,
     ph =

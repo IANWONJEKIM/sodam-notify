@@ -5,7 +5,7 @@ import { grow } from '../ui/common.js';
 import { threadHTML, renderMsgs } from '../ui/messages.js';
 import { sideHTML, mainHTML } from '../ui/layout.js';
 import { taskHTML, renderCmts } from '../ui/board.js';
-import { railHTML } from '../ui/tabs.js';
+import { railHTML, botHTML, isTool, toolHTML } from '../ui/tabs.js';
 import { renderOverlay } from '../ui/overlay.js';
 
 function render() {
@@ -13,6 +13,18 @@ function render() {
   var app = document.getElementById('app'),
     keep = snapComposer();
   if (!narrow() && S.pane === 'list' && S.view) S.pane = 'conv';
+  /* 매장 도구 탭(STOCK·VMD·BOARD): 목록 없이 화면 전체 · 휴대폰은 아래 탭을 같이 */
+  if (isTool()) {
+    app.innerHTML =
+      '<div class="shell tool" data-pane="tool">' +
+      (narrow() ? '' : railHTML()) +
+      '<main class="main">' +
+      toolHTML(S.tab) +
+      (narrow() ? botHTML() : '') +
+      '</main></div>';
+    renderOverlay();
+    return;
+  }
   var side = sideHTML(),
     side2 = S.thread ? threadHTML() : S.task ? taskHTML() : '';
   app.innerHTML =

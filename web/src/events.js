@@ -460,6 +460,13 @@ function msgActs(a, b, id, rid, v) {
     render();
     return true;
   }
+  if (a === 'cal') {
+    stopConv();
+    S.view = { k: 'cal' };
+    S.pane = 'conv';
+    render();
+    return true;
+  }
   if (a === 'gothread') {
     var tp = String(v || '').split('/');
     S.sheet = S.fwd = null;

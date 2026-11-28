@@ -183,7 +183,8 @@ function jump(t) {
   S.pendJump = null;
   if (!c) return toast('이 대화를 볼 수 없어요');
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
-  S.tab = t.k === 'd' ? 'dm' : S.tab === 'dm' ? 'home' : S.tab;
+  /* 활동 탭에서 왔으면 활동 목록을 그대로 두고, 그 밖(도구 탭 등)에서는 홈으로 */
+  if (S.tab !== 'act') S.tab = 'home';
   S.jump = { mid: t.mid, rid: t.rid, at: Date.now() };
   if (!(S.view && S.view.k === t.k && S.view.id === t.id))
     openConv({ k: t.k, id: t.id, tab: c.kind === 'proj' ? 'chat' : undefined });

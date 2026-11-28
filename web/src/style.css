@@ -1669,3 +1669,22 @@ button.trow:hover,
 .ep-tabs::-webkit-scrollbar {
   display: none;
 }
+/* 매장 도구 탭: 목록 없이 화면 전체 */
+.shell.tool {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+.shell.tool .main .page {
+  flex: 1;
+  overflow-y: auto;
+}
+.tchips.sub {
+  padding-top: 0;
+}
+@media (max-width: 899px) {
+  .shell.tool {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .shell.tool .bot {
+    margin-top: auto;
+  }
+}

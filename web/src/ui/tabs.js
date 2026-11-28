@@ -1,20 +1,43 @@
-/* 탭: 홈 · DM · 내 활동 · 나중에 보기
-   PC는 맨 왼쪽 좁은 세로 막대, 휴대폰은 목록 화면 아래 탭 막대 */
-import { db } from '../firebase.js';
+/* 탭: 홈 · 활동 · STOCK · VMD · BOARD (원제님 결정 2026-11-28)
+   - DM은 홈 목록에서, 나중에 보기는 활동 안에서 봐요. 캘린더는 홈 안에.
+   - STOCK·VMD·BOARD는 워크툴·성과 대시보드를 옮겨 올 매장 도구 화면이에요.
+   PC는 맨 왼쪽 좁은 세로 막대, 휴대폰은 아래 탭 막대 */
 import { esc, ms, hm, dayKey, dayLabel } from '../util.js';
 import { nameOf, dmOthers, dmName, joined, chan, dm, vis, S } from '../state.js';
-import { ucount, unread, cntHTML, UC } from '../unread.js';
-import { av, gav } from '../ui/common.js';
+import { unread, UC } from '../unread.js';
+import { av } from '../ui/common.js';
 import { emoOf } from './emoji.js';
 import { threadList, threadNew } from '../threads.js';
 
 var TABS = [
   ['home', '홈', '🏠'],
-  ['dm', 'DM', '💬'],
-  ['act', '내 활동', '🔔'],
-  ['saved', '나중에', '🔖'],
+  ['act', '활동', '🔔'],
+  ['stock', 'STOCK', '📦'],
+  ['vmd', 'VMD', '🖼️'],
+  ['board', 'BOARD', '📊'],
 ];
-/* 탭마다 표시: 홈은 점, 나머지는 숫자 */
+/* 매장 도구 탭 (목록 없이 화면 전체를 써요) */
+var TOOLS = {
+  stock: ['STOCK', '📦', '워크툴의 STOCK(재고 찾기·위치·유통기한), 발주, 입고·이슈를 옮겨 올 자리예요.'],
+  vmd: ['VMD', '🖼️', '워크툴의 VMD(진열 기록·요청·효과 보기)를 옮겨 올 자리예요.'],
+  board: ['BOARD', '📊', '성과 대시보드(매출·성과 숫자)를 옮겨 올 자리예요.'],
+};
+function isTool(t) {
+  return !!TOOLS[t || S.tab];
+}
+function toolHTML(t) {
+  var x = TOOLS[t];
+  return (
+    '<div class="top"><h2>' +
+    x[1] +
+    ' ' +
+    x[0] +
+    '</h2></div><div class="page"><div class="card"><h3>준비 중이에요</h3><p class="muted" style="margin:0">' +
+    x[2] +
+    '</p><p class="small muted" style="margin:0">지금은 쓰던 아티팩트를 그대로 써 주세요. 옮겨 오면 여기서 바로 열려요.</p></div></div>'
+  );
+}
+/* 탭마다 표시: 홈은 DM 안 읽은 수(없으면 채널 안 읽음 점), 활동은 새 활동 수 */
 function badges() {
   var home = S.channels.some(function (c) {
       return vis(c) && joined(c) && unread('c_' + c.id, c);
@@ -24,7 +47,7 @@ function badges() {
     var k = 'd_' + d.id;
     if (unread(k, d)) dmn += (UC[k] && UC[k].n) || 1;
   });
-  return { home: home ? -1 : 0, dm: dmn, act: actNew(), saved: savedOpen().length };
+  return { home: dmn || (home ? -1 : 0), act: actNew() };
 }
 function actSeenAt() {
   var r = S.reads.act;
@@ -86,42 +109,6 @@ function when(t) {
   return dayKey(t) === dayKey(Date.now()) ? hm(t) : dayLabel(t).replace(/ \(.\)/, '');
 }
 
-/* DM 탭: 대화 목록 + 마지막 글 */
-function dmTabHTML() {
-  var L = S.dms.filter(function (d) {
-    return d.lastAt;
-  });
-  var h =
-    '<div class="tabhd"><h2>다이렉트 메시지</h2><button class="btn sm" data-act="newdm">+ 새 메시지</button></div><div class="tlist">';
-  if (!L.length) h += '<p class="tempty">아직 DM이 없어요. + 새 메시지로 시작해 보세요.</p>';
-  L.forEach(function (d) {
-    var os = dmOthers(d),
-      k = 'd_' + d.id,
-      on = S.view && S.view.k === 'd' && S.view.id === d.id,
-      n = on ? 0 : ucount(k, d, db.collection('dms').doc(d.id)),
-      last = d.last || {};
-    h +=
-      '<button class="trow' +
-      (on ? ' on' : '') +
-      (n ? ' un' : '') +
-      '" data-act="open" data-k="d" data-id="' +
-      esc(d.id) +
-      '">' +
-      (d.g ? gav(os) : av(os[0])) +
-      '<span class="tb"><span class="t1"><b>' +
-      esc(d.g ? dmName(d) : nameOf(os[0]) + (os[0] === S.u.uid ? ' (나)' : '')) +
-      '</b><time>' +
-      when(d.lastAt) +
-      '</time></span><span class="t2">' +
-      (last.by === S.u.uid ? '나: ' : '') +
-      esc(last.text || '') +
-      '</span></span>' +
-      cntHTML(n) +
-      '</button>';
-  });
-  return h + '</div>';
-}
-
 /* 내 활동: 멘션 · 반응 · 답글 */
 function actTabHTML() {
   var seen = S.actPrev != null ? S.actPrev : actSeenAt(),
@@ -137,6 +124,7 @@ function actTabHTML() {
       ['men', '@ 멘션'],
       ['rp', '💬 답글'],
       ['re', '😀 반응'],
+      ['sv', '🔖 나중에' + (savedOpen().length ? ' ' + savedOpen().length : '')],
     ]
       .map(function (c) {
         return (
@@ -152,6 +140,7 @@ function actTabHTML() {
       .join('') +
     '</div><div class="tlist">';
   if (f === 'th') return h + threadsHTML() + '</div>';
+  if (f === 'sv') return h + '</div>' + savedTabHTML();
   if (!L.length)
     h += '<p class="tempty">아직 활동이 없어요.<br>누가 나를 @부르거나, 내 글에 반응·답글을 달면 여기 모여요.</p>';
   L.forEach(function (a) {
@@ -234,7 +223,7 @@ function savedTabHTML() {
       return !!s.done === done;
     });
   var h =
-    '<div class="tabhd"><h2>나중에 보기</h2></div><div class="chips tchips"><button class="chip" data-act="svf" data-v="open" aria-pressed="' +
+    '<div class="chips tchips sub"><button class="chip" data-act="svf" data-v="open" aria-pressed="' +
     !done +
     '">진행 중 ' +
     savedOpen().length +
@@ -275,4 +264,4 @@ function savedTabHTML() {
   return h + '</div>';
 }
 
-export { railHTML, botHTML, dmTabHTML, actTabHTML, savedTabHTML, badges, actSeenAt };
+export { railHTML, botHTML, actTabHTML, badges, actSeenAt, isTool, toolHTML };
