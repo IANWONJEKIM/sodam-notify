@@ -8,6 +8,7 @@ import { unread, UC } from '../unread.js';
 import { av } from '../ui/common.js';
 import { emoOf } from './emoji.js';
 import { threadList, threadNew } from '../threads.js';
+import { isMuted } from '../side.js';
 
 var TABS = [
   ['home', '홈', '🏠'],
@@ -40,12 +41,12 @@ function toolHTML(t) {
 /* 탭마다 표시: 홈은 DM 안 읽은 수(없으면 채널 안 읽음 점), 활동은 새 활동 수 */
 function badges() {
   var home = S.channels.some(function (c) {
-      return vis(c) && joined(c) && unread('c_' + c.id, c);
+      return vis(c) && joined(c) && !isMuted('c_' + c.id) && unread('c_' + c.id, c);
     }),
     dmn = 0;
   S.dms.forEach(function (d) {
     var k = 'd_' + d.id;
-    if (unread(k, d)) dmn += (UC[k] && UC[k].n) || 1;
+    if (!isMuted(k) && unread(k, d)) dmn += (UC[k] && UC[k].n) || 1;
   });
   return { home: dmn || (home ? -1 : 0), act: actNew() };
 }

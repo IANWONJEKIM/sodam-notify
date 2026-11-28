@@ -1,6 +1,6 @@
 /* 대화 열기 */
 import { db, FV } from './firebase.js';
-import { toast, errMsg } from './util.js';
+import { toast, errMsg, ms } from './util.js';
 import { convKey, convRef, dmId, chan, dm, narrow, S, LS } from './state.js';
 import { unread } from './unread.js';
 import { listenTasks } from './tasks.js';
@@ -32,6 +32,11 @@ function openConv(v) {
     if (c && c.kind === 'proj' && !v.tab) v.tab = unread('c_' + c.id, c) ? 'chat' : 'task';
     if (c && c.kind !== 'proj') delete v.tab;
   }
+  /* '새 메시지' 구분선: 열기 전에 마지막으로 읽은 시각을 기억해요 */
+  var ck = convKey(v),
+    cc = v.k === 'c' ? chan(v.id) : v.k === 'd' ? dm(v.id) : null;
+  S.divAt = cc && unread(ck, cc) && S.reads[ck] && S.reads[ck].at ? ms(S.reads[ck].at) : null;
+  S.divScroll = !!S.divAt;
   S.view = v;
   S.msgs = [];
   S.lim = 60;

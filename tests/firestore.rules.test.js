@@ -106,6 +106,8 @@ describe('프로필 · 읽음 기록', () => {
       }),
     );
     await assertSucceeds(updateDoc(me, { st: null }));
+    await assertSucceeds(updateDoc(me, { side: { fav: ['c_pub'], mute: [], secs: [] } }));
+    await assertFails(updateDoc(me, { side: 'x' }));
     await assertFails(updateDoc(me, { admin: true }));
     await assertFails(updateDoc(me, { dname: 'x'.repeat(21) }));
     await assertFails(updateDoc(me, { st: { e: '🏖', t: '휴무', hack: 1 } }));

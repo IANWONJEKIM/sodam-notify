@@ -22,6 +22,8 @@ import { boardHTML } from '../ui/board.js';
 import { botHTML, actTabHTML } from '../ui/tabs.js';
 import { meEditHTML, setHTML } from './profile.js';
 import { stBadge, stOf, stUntilLabel } from '../people.js';
+import { side, ordered } from '../side.js';
+import { searchHTML } from '../search.js';
 import { adminHTML, newdmHTML, csetHTML } from '../admin.js';
 
 function convTitle(v) {
@@ -58,102 +60,204 @@ function meHTML() {
     '</span></span><span class="mechev">⋯</span></button>'
   );
 }
-/* 왼쪽 목록: 탭에 따라 홈(채널·DM) / DM / 내 활동 / 나중에 보기.
+/* 묶음별 지금 순서 (순서 바꾸기·끌어 놓기에서 써요) */
+var GK = {};
+/* 왼쪽 목록: 홈(즐겨찾기·내 섹션·채널·프로젝트·DM) / 활동.
    휴대폰은 아래 탭 막대를 붙이고, '나'는 홈 목록 맨 아래에 둬요 */
 function sideHTML() {
-  var ws = '<div class="ws"><img src="../icon-192.png" alt=""><b>소담상회</b></div>',
+  var ws =
+      '<div class="ws"><img src="../icon-192.png" alt=""><b>소담상회</b>' +
+      (narrow() ? '<button class="wsq" data-act="search" aria-label="검색">🔍</button>' : '') +
+      '</div>',
     foot = narrow() ? botHTML() : meHTML();
   if (S.tab === 'act') return ws + '<div class="slist tab">' + actTabHTML() + '</div>' + foot;
-  var h =
-    ws +
-    '<div class="slist"><button class="si' +
-    (S.view && S.view.k === 'cal' ? ' on' : '') +
-    '" data-act="cal"><span class="hash">📅</span><span class="nm">캘린더</span></button>';
-  function chItem(c) {
-    var k = 'c_' + c.id,
-      on = S.view && S.view.k === 'c' && S.view.id === c.id,
-      n = on ? 0 : ucount(k, c, db.collection('channels').doc(c.id));
-    return (
-      '<button class="si' +
-      (on ? ' on' : '') +
-      (n ? ' un' : '') +
-      '" data-act="open" data-k="c" data-id="' +
-      esc(c.id) +
-      '"><span class="hash">' +
-      (c.kind === 'proj' ? '▦' : c.priv ? '🔒' : '#') +
-      '</span><span class="nm">' +
-      esc(c.name) +
-      '</span>' +
-      cntHTML(n) +
-      '</button>'
-    );
-  }
+  var sd = side(),
+    h =
+      ws +
+      '<div class="slist"><button class="si' +
+      (S.view && S.view.k === 'cal' ? ' on' : '') +
+      '" data-act="cal"><span class="hash">📅</span><span class="nm">캘린더</span></button>';
+  GK = {};
+  /* 보일 수 있는 것들: 들어간 채널·프로젝트, 글이 있는 DM */
   var V = S.channels.filter(function (c) {
       return vis(c) && joined(c);
     }),
-    P = V.filter(function (c) {
-      return c.kind === 'proj';
-    }),
-    PD = P.filter(function (c) {
-      return c.done;
-    }),
-    cv = S.view && S.view.k === 'c' && chan(S.view.id);
-  h +=
-    '<div class="sh">채널<button data-act="cset" data-v="pub" title="채널 만들기" aria-label="채널 만들기">+</button></div>';
+    INFO = {};
   V.forEach(function (c) {
-    if (c.kind !== 'proj') h += chItem(c);
+    INFO['c_' + c.id] = { t: c.kind === 'proj' ? 'pj' : 'ch', c: c };
   });
+  S.dms.forEach(function (d) {
+    var on = S.view && S.view.k === 'd' && S.view.id === d.id;
+    if (d.lastAt || on) INFO['d_' + d.id] = { t: 'dm', d: d };
+  });
+  function itemHTML(key, g) {
+    var x = INFO[key],
+      mu = sd.mute.indexOf(key) >= 0,
+      on,
+      n,
+      icon,
+      name;
+    if (x.c) {
+      var c = x.c;
+      on = S.view && S.view.k === 'c' && S.view.id === c.id;
+      n = on || mu ? 0 : ucount(key, c, db.collection('channels').doc(c.id));
+      icon = '<span class="hash">' + (c.kind === 'proj' ? '▦' : c.priv ? '🔒' : '#') + '</span>';
+      name = esc(c.name);
+    } else {
+      var d = x.d,
+        os = dmOthers(d),
+        o = os[0];
+      on = S.view && S.view.k === 'd' && S.view.id === d.id;
+      n = on || mu ? 0 : ucount(key, d, db.collection('dms').doc(d.id));
+      icon = d.g ? gav(os) : av(o, 1);
+      name = esc(d.g ? dmName(d) : nameOf(o)) + (d.g ? '' : stBadge(o)) + (!d.g && o === S.u.uid ? ' (나)' : '');
+    }
+    var re = S.reord === g;
+    return (
+      '<div class="si' +
+      (on ? ' on' : '') +
+      (n ? ' un' : '') +
+      (mu ? ' mu' : '') +
+      '" role="button" tabindex="0" data-act="open" data-k="' +
+      (x.c ? 'c' : 'd') +
+      '" data-id="' +
+      esc(x.c ? x.c.id : x.d.id) +
+      '" data-sk="' +
+      esc(key) +
+      '" data-g="' +
+      esc(g) +
+      '"' +
+      (!narrow() && !re ? ' draggable="true"' : '') +
+      '>' +
+      icon +
+      '<span class="nm">' +
+      name +
+      '</span>' +
+      (mu ? '<span class="mui" aria-label="음소거">🔕</span>' : '') +
+      cntHTML(n) +
+      (re
+        ? '<span class="mv"><button data-act="mvup" data-v="' +
+          esc(key) +
+          '" data-g="' +
+          esc(g) +
+          '" aria-label="위로">↑</button><button data-act="mvdn" data-v="' +
+          esc(key) +
+          '" data-g="' +
+          esc(g) +
+          '" aria-label="아래로">↓</button></span>'
+        : '<button class="sim" data-act="simenu" data-v="' + esc(key) + '" aria-label="메뉴" title="메뉴">⋯</button>') +
+      '</div>'
+    );
+  }
+  /* 묶음 머리 + 항목들. 접어 두면 지금 보는 것·안 읽은 것만 보여요 */
+  function group(g, title, keys, tools, empty) {
+    keys = ordered(g, keys);
+    GK[g] = keys;
+    var shut = sd.shut.indexOf(g) >= 0,
+      out =
+        '<div class="sh" data-g="' +
+        esc(g) +
+        '"><button class="shb" data-act="shut" data-v="' +
+        esc(g) +
+        '" aria-expanded="' +
+        !shut +
+        '"><i>' +
+        (shut ? '▸' : '▾') +
+        '</i>' +
+        title +
+        '</button>' +
+        (S.reord === g ? '<button class="done" data-act="reord" data-v="">완료</button>' : tools || '') +
+        '</div>';
+    keys.forEach(function (k) {
+      var it = itemHTML(k, g);
+      if (!shut || / on| un/.test(it.slice(0, 40))) out += it;
+    });
+    if (!keys.length && empty && !shut) out += empty;
+    return out;
+  }
+  var used = {};
+  sd.fav.forEach(function (k) {
+    used[k] = 1;
+  });
+  sd.secs.forEach(function (x) {
+    x.keys.forEach(function (k) {
+      used[k] = 1;
+    });
+  });
+  var favKeys = sd.fav.filter(function (k) {
+    return INFO[k];
+  });
+  if (favKeys.length) h += group('fav', '⭐ 즐겨찾기', favKeys);
+  sd.secs.forEach(function (x) {
+    h += group(
+      x.id,
+      esc(x.name),
+      x.keys.filter(function (k) {
+        return INFO[k];
+      }),
+      '<button data-act="secmenu" data-v="' + esc(x.id) + '" title="섹션 메뉴" aria-label="섹션 메뉴">⋯</button>',
+      '<p class="shint">' +
+        (narrow() ? '채널·DM을 길게 눌러' : '채널·DM의 ⋯ (또는 끌어다 놓기)') +
+        " → '섹션으로 옮기기'로 넣어요</p>",
+    );
+  });
+  function rest(t) {
+    return Object.keys(INFO).filter(function (k) {
+      return INFO[k].t === t && !used[k];
+    });
+  }
+  h += group(
+    'ch',
+    '채널',
+    rest('ch'),
+    '<button data-act="cset" data-v="pub" title="채널 만들기" aria-label="채널 만들기">+</button>',
+  );
   /* 들어가지 않은 공개 채널을 미리 보는 중이면 잠깐 목록에 보여요 */
-  if (cv && !joined(cv) && vis(cv) && cv.kind !== 'proj') h += chItem(cv).replace('class="si', 'class="si pv');
+  var cv = S.view && S.view.k === 'c' && chan(S.view.id);
+  if (cv && !joined(cv) && vis(cv) && cv.kind !== 'proj') {
+    INFO['c_' + cv.id] = { t: 'ch', c: cv };
+    h += itemHTML('c_' + cv.id, 'ch')
+      .replace('class="si', 'class="si pv')
+      .replace(' draggable="true"', '');
+  }
   h +=
     '<button class="si' +
     (S.view && S.view.k === 'browse' ? ' on' : '') +
     '" data-act="browse"><span class="hash">+</span><span class="nm">채널 찾아보기</span></button>';
-  if (P.length || isAdmin()) {
-    h +=
-      '<div class="sh">프로젝트' +
-      (isAdmin()
-        ? '<button data-act="cset" data-v="proj" title="프로젝트 만들기" aria-label="프로젝트 만들기">+</button>'
-        : '') +
-      '</div>';
-    P.forEach(function (c) {
-      if (!c.done || S.showDone || (S.view && S.view.id === c.id)) h += chItem(c);
+  var P = rest('pj'),
+    PD = P.filter(function (k) {
+      return INFO[k].c.done;
     });
+  if (P.length || isAdmin()) {
+    h += group(
+      'pj',
+      '프로젝트',
+      P.filter(function (k) {
+        return !INFO[k].c.done || S.showDone || (S.view && S.view.id === INFO[k].c.id);
+      }),
+      isAdmin()
+        ? '<button data-act="cset" data-v="proj" title="프로젝트 만들기" aria-label="프로젝트 만들기">+</button>'
+        : '',
+      '<p class="shint">+ 를 눌러 프로젝트를 만들어요</p>',
+    );
     if (PD.length)
       h +=
         '<div class="sh"><button class="tg" data-act="showdone">' +
         (S.showDone ? '완료된 프로젝트 숨기기' : '완료된 프로젝트 ' + PD.length + '개 보기') +
         '</button></div>';
-    if (!P.length)
-      h += '<p class="small" style="color:var(--side-muted);margin:2px 10px">+ 를 눌러 프로젝트를 만들어요</p>';
   }
-  h += '<div class="sh">다이렉트 메시지<button data-act="newdm" title="새 DM" aria-label="새 DM">+</button></div>';
-  S.dms.forEach(function (d) {
-    var os = dmOthers(d),
-      o = os[0],
-      k = 'd_' + d.id,
-      on = S.view && S.view.k === 'd' && S.view.id === d.id,
-      n = on ? 0 : ucount(k, d, db.collection('dms').doc(d.id));
-    if (!d.lastAt && !on) return;
-    h +=
-      '<button class="si' +
-      (on ? ' on' : '') +
-      (n ? ' un' : '') +
-      '" data-act="open" data-k="d" data-id="' +
-      esc(d.id) +
-      '">' +
-      (d.g ? gav(os) : av(o, 1)) +
-      '<span class="nm">' +
-      esc(d.g ? dmName(d) : nameOf(o)) +
-      (d.g ? '' : stBadge(o)) +
-      (!d.g && o === S.u.uid ? ' (나)' : '') +
-      '</span>' +
-      cntHTML(n) +
-      '</button>';
-  });
+  /* DM은 원래 최근 대화 순 (직접 순서를 바꾸면 그 순서) */
+  h += group(
+    'dm',
+    '다이렉트 메시지',
+    rest('dm'),
+    '<button data-act="newdm" title="새 DM" aria-label="새 DM">+</button>',
+  );
+  h +=
+    '<button class="si snew" data-act="secnew"><span class="hash">＋</span><span class="nm">섹션 만들기</span></button>';
   if (isAdmin())
     h +=
-      '<div class="sh">관리</div><button class="si' +
+      '<div class="sh"><span class="shb">관리</span></div><button class="si' +
       (S.view && S.view.k === 'admin' ? ' on' : '') +
       '" data-act="admin" data-v="staff"><span class="hash">⚙</span><span class="nm">직원 · 채널 관리</span></button>';
   return h + (narrow() ? meHTML() + '</div>' : '</div>') + foot;
@@ -182,6 +286,7 @@ function mainHTML() {
   if (v.k === 'cinfo') return cinfoHTML(chan(v.id));
   if (v.k === 'pins') return pinsHTML(v);
   if (v.k === 'me') return meEditHTML();
+  if (v.k === 'search') return searchHTML();
   if (v.k === 'set') return setHTML();
   if (v.k === 'cal')
     return (
@@ -385,4 +490,4 @@ function cinfoHTML(c) {
   return h;
 }
 
-export { convTitle, sideHTML, mainHTML, browseList };
+export { convTitle, sideHTML, mainHTML, browseList, GK };

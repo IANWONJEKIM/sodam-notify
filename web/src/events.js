@@ -9,7 +9,7 @@ import { stopConv, openConv, listen, markRead, openThread, closeThread, openDM, 
 import { tk, tkRef, openTask, tkUp, tkAdd, tkSt } from './tasks.js';
 import { send, react, delMsg, saveEdit } from './messages.js';
 import { grow, applyFmt, insertAt } from './ui/common.js';
-import { renderMsgs, renderThread } from './ui/messages.js';
+import { renderMsgs, renderThread, jumpBtn } from './ui/messages.js';
 import { renderCmts } from './ui/board.js';
 import { render } from './ui/render.js';
 import { adminAct, openCset, csBack, csetSave } from './admin.js';
@@ -30,6 +30,20 @@ import {
 import { actSeenAt } from './ui/tabs.js';
 import { loadEmoji, reKey, hexToEmo, remember } from './ui/emoji.js';
 import { ST_PRESET, stOf, saveStatus, saveProfile, setPref, prefs } from './people.js';
+import {
+  toggleFav,
+  toggleMute,
+  moveTo,
+  newSec,
+  renameSec,
+  delSec,
+  moveSec,
+  toggleShut,
+  setOrder,
+  nudge,
+} from './side.js';
+import { GK } from './ui/layout.js';
+import { load as loadSearch, refreshResults, qsList } from './search.js';
 
 /* 서식 막대·이모지 버튼을 눌러도 입력창 커서(고른 글)가 그대로 있게 */
 document.addEventListener('mousedown', function (ev) {
@@ -45,6 +59,15 @@ document.addEventListener('input', function (ev) {
   if (isComp(t.id)) {
     grow(t);
     mpUpdate(t);
+  }
+  if (t.id === 'sq') {
+    (S.srch || (S.srch = {})).q = t.value;
+    refreshResults();
+  }
+  if (t.id === 'qs-q' && S.qs) {
+    S.qs.q = t.value;
+    S.qs.sel = 0;
+    renderOverlay();
   }
   if (t.id === 'ep-q' && S.ep) {
     S.ep.q = t.value;
@@ -136,8 +159,11 @@ document.addEventListener('keydown', function (ev) {
       saveEdit(m.getAttribute('data-id'), m.getAttribute('data-rid'), t.value);
     }
   }
-  if (ev.key === 'Escape' && (S.sheet || S.fwd || S.menu || S.ep || S.stp || S.mem)) {
-    S.sheet = S.fwd = S.menu = S.ep = S.stp = S.mem = null;
+  if (
+    ev.key === 'Escape' &&
+    (S.sheet || S.fwd || S.menu || S.ep || S.stp || S.mem || S.sim || S.secm || S.secnew || S.qs)
+  ) {
+    S.sheet = S.fwd = S.menu = S.ep = S.stp = S.mem = S.sim = S.secm = S.secnew = S.qs = null;
     renderOverlay();
     renderMsgs();
     renderThread();
@@ -164,6 +190,15 @@ document.addEventListener('click', function (ev) {
   /* 길게 누른 직후 손을 뗄 때 생기는 클릭은 무시해요 */
   if (Date.now() - LP.fired < 600 && !(b && b.closest('#ov'))) return;
   if (!b || b.disabled) return;
+  /* 사이드바 메뉴: 고르면 닫아요 (섹션 고르기·새 섹션은 이어서) */
+  if (
+    b.closest('#ov') &&
+    S.sim &&
+    ['simpick', 'simback', 'secnew', 'ovclose', 'simto'].indexOf(b.getAttribute('data-act')) < 0
+  ) {
+    S.sim = null;
+    renderOverlay();
+  }
   /* 아래 메뉴·전달 창에서 고르면 닫아요 (지우기는 두 번 눌러야 해서 제외) */
   if (b.closest('#ov') && S.sheet && ['del', 'ovclose', 'fwto', 'fwgo'].indexOf(b.getAttribute('data-act')) < 0) {
     S.sheet = null;
@@ -424,6 +459,7 @@ document.addEventListener('click', function (ev) {
 document.addEventListener(
   'scroll',
   function (ev) {
+    if (ev.target && ev.target.id === 'msgs') jumpBtn();
     if (ev.target && ev.target.id === 'msgs' && ev.target.scrollTop < 40 && S.more && !S.loadingMore) {
       S.loadingMore = true;
       S.lim += 60;
@@ -467,6 +503,8 @@ function msgActs(a, b, id, rid, v) {
     return true;
   }
   if (peopleActs(a, b, id, v)) return true;
+  if (sideActs(a, b, v)) return true;
+  if (searchActs(a, b, v)) return true;
   if (a === 'cal') {
     stopConv();
     S.view = { k: 'cal' };
@@ -599,7 +637,7 @@ function msgActs(a, b, id, rid, v) {
     return true;
   }
   if (a === 'ovclose') {
-    S.sheet = S.fwd = S.ep = S.stp = S.mem = null;
+    S.sheet = S.fwd = S.ep = S.stp = S.mem = S.sim = S.secm = S.secnew = S.qs = null;
     renderOverlay();
     return true;
   }
@@ -731,11 +769,297 @@ document.addEventListener('change', function (ev) {
   if (t.getAttribute && t.getAttribute('data-act') === 'prefck') setPref(t.getAttribute('data-k'), t.checked);
 });
 
+/* 검색 · 빠른 이동 */
+function openSearch() {
+  S.qs = null;
+  renderOverlay();
+  stopConv();
+  S.view = { k: 'search' };
+  S.tab = 'home';
+  S.pane = 'conv';
+  render();
+  setTimeout(function () {
+    var q = document.getElementById('sq');
+    if (q) q.focus();
+  }, 30);
+  loadSearch(refreshResults);
+}
+function qsGo(i) {
+  var x = qsList()[i];
+  S.qs = null;
+  renderOverlay();
+  if (!x) return;
+  S.tab = 'home';
+  if (x.t === 'p') return openDM(x.id);
+  openConv({ k: x.k, id: x.id });
+}
+function searchActs(a, b, v) {
+  if (a === 'search') return (openSearch(), true);
+  if (a === 'jumpnew') {
+    var nlx = document.getElementById('newline');
+    if (nlx) nlx.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    return true;
+  }
+  if (a === 'sqper') {
+    S.srch.per = v;
+    document.querySelectorAll('[data-act="sqper"]').forEach(function (c) {
+      c.setAttribute('aria-pressed', c.getAttribute('data-v') === v);
+    });
+    refreshResults();
+    return true;
+  }
+  if (a === 'qsgo') return (qsGo(+v), true);
+  return false;
+}
+document.addEventListener('change', function (ev) {
+  var t = ev.target;
+  if (t.id === 'sq-from' || t.id === 'sq-cv') {
+    S.srch[t.id === 'sq-from' ? 'from' : 'cv'] = t.value;
+    refreshResults();
+  }
+});
+document.addEventListener('keydown', function (ev) {
+  /* Ctrl/⌘+K: 빠른 이동 */
+  if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'k' || ev.key === 'K') && S.u) {
+    ev.preventDefault();
+    S.qs = { q: '', sel: 0 };
+    renderOverlay();
+    /* 바로 옮겨야 곧장 친 글자가 이 칸에 들어가요 */
+    var qq = document.getElementById('qs-q');
+    if (qq) qq.focus();
+    return;
+  }
+  /* ↑: 입력창이 비어 있으면 내가 마지막에 쓴 글 고치기 */
+  var tg = ev.target;
+  if (tg.id === 'ta' && ev.key === 'ArrowUp' && !tg.value && !MP.id && !ev.isComposing) {
+    for (var i = S.msgs.length - 1; i >= 0; i--) {
+      var mm = S.msgs[i];
+      if (mm.uid === S.u.uid && !mm.del && !mm.fwd) {
+        ev.preventDefault();
+        S.edit = mm.id;
+        renderMsgs();
+        var me = document.querySelector('.m[data-id="' + mm.id + '"]');
+        if (me) me.scrollIntoView({ block: 'nearest' });
+        setTimeout(function () {
+          var e = document.getElementById('eta');
+          if (e) {
+            e.focus();
+            e.setSelectionRange(e.value.length, e.value.length);
+          }
+        }, 20);
+        return;
+      }
+    }
+  }
+  /* Esc: (열린 창이 없을 때) 지금 대화를 읽음으로 · 새 메시지 줄도 지워요 */
+  if (
+    ev.key === 'Escape' &&
+    tg.id === 'ta' &&
+    !S.emo &&
+    !S.menu &&
+    !S.ep &&
+    !MP.id &&
+    S.view &&
+    (S.view.k === 'c' || S.view.k === 'd')
+  ) {
+    markRead();
+    if (S.divAt) {
+      S.divAt = null;
+      renderMsgs();
+    }
+    toast('읽음으로 표시했어요');
+    return;
+  }
+  if (ev.target.id === 'qs-q' && S.qs) {
+    var n = qsList().length;
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      S.qs.sel = (S.qs.sel + (ev.key === 'ArrowDown' ? 1 : -1) + n) % Math.max(n, 1);
+      renderOverlay();
+    } else if (ev.key === 'Enter' && !ev.isComposing) {
+      ev.preventDefault();
+      qsGo(S.qs.sel);
+    }
+  }
+});
+
+/* 내 사이드바: 즐겨찾기 · 섹션 · 음소거 · 순서 */
+function openSim(el) {
+  S.sim = { k: el.getAttribute('data-sk'), g: el.getAttribute('data-g') };
+  renderOverlay();
+}
+function sideActs(a, b, v) {
+  var done = function () {
+    render();
+    renderOverlay();
+    return true;
+  };
+  if (a === 'simenu') {
+    openSim(b.closest('.si'));
+    return true;
+  }
+  if (a === 'simfav') return (toggleFav(v), done());
+  if (a === 'simmute') return (toggleMute(v), done());
+  if (a === 'simpick' || a === 'simback') {
+    S.sim.pick = a === 'simpick';
+    return done();
+  }
+  if (a === 'simto') {
+    moveTo(v, b.getAttribute('data-s') || null);
+    S.sim = null;
+    return done();
+  }
+  if (a === 'secnew') {
+    S.sim = null;
+    S.secnew = { k: v || null };
+    renderOverlay();
+    setTimeout(function () {
+      var x = document.getElementById('sec-new');
+      if (x) x.focus();
+    }, 30);
+    return true;
+  }
+  if (a === 'secmake') {
+    var x = document.getElementById('sec-new'),
+      k = S.secnew && S.secnew.k;
+    if (!x || !x.value.trim()) return true;
+    S.secnew = null;
+    newSec(x.value, k);
+    return done();
+  }
+  if (a === 'secmenu') {
+    S.secm = v;
+    S.secm_redraw = true;
+    return done();
+  }
+  if (a === 'secren') {
+    var n = document.getElementById('sec-name');
+    if (n) renameSec(v, n.value);
+    S.secm = null;
+    return done();
+  }
+  if (a === 'secup' || a === 'secdn') {
+    moveSec(v, a === 'secup' ? -1 : 1);
+    S.secm_redraw = true;
+    return done();
+  }
+  if (a === 'secdel') {
+    S.secm = null;
+    delSec(v);
+    return done();
+  }
+  if (a === 'reord') {
+    S.sim = S.secm = null;
+    S.reord = v || null;
+    if (narrow() && v) S.pane = 'list';
+    return done();
+  }
+  if (a === 'mvup' || a === 'mvdn') {
+    var g = b.getAttribute('data-g');
+    nudge(g, GK[g] || [], v, a === 'mvup' ? -1 : 1);
+    return done();
+  }
+  if (a === 'shut') return (toggleShut(v), done());
+  return false;
+}
+/* PC: 목록 항목 오른쪽 클릭 → 메뉴 */
+document.addEventListener('contextmenu', function (ev) {
+  var si = ev.target.closest && ev.target.closest('.si[data-sk]');
+  if (!si) return;
+  ev.preventDefault();
+  openSim(si);
+});
+/* 키보드: 목록 항목(div)도 Enter·Space로 열려요 */
+document.addEventListener('keydown', function (ev) {
+  var t = ev.target;
+  if ((ev.key === 'Enter' || ev.key === ' ') && t.classList && t.classList.contains('si') && t.tagName === 'DIV') {
+    ev.preventDefault();
+    t.click();
+  }
+});
+/* PC: 끌어서 순서 바꾸기 · 다른 묶음(즐겨찾기·섹션)으로 옮기기 */
+var DRAG = null;
+document.addEventListener('dragstart', function (ev) {
+  var si = ev.target.closest && ev.target.closest('.si[data-sk]');
+  if (!si) return;
+  DRAG = {
+    k: si.getAttribute('data-sk'),
+    g: si.getAttribute('data-g'),
+    t: si.querySelector('.hash') && si.querySelector('.hash').textContent === '▦' ? 'pj' : '',
+  };
+  ev.dataTransfer.effectAllowed = 'move';
+  try {
+    ev.dataTransfer.setData('text/plain', DRAG.k);
+  } catch (e) {}
+  si.classList.add('drag');
+});
+document.addEventListener('dragend', function () {
+  DRAG = null;
+  document.querySelectorAll('.si.drag, .si.dover').forEach(function (e) {
+    e.classList.remove('drag', 'dover');
+  });
+});
+function dropOk(tg) {
+  if (!DRAG || !tg) return false;
+  /* 즐겨찾기·내 섹션에는 무엇이든, 원래 묶음(채널·프로젝트·DM)에는 그 종류만 */
+  if (tg === 'fav' || tg[0] === 's') return true;
+  var t = DRAG.k.indexOf('d_') === 0 ? 'dm' : DRAG.g === 'pj' || DRAG.t === 'pj' ? 'pj' : 'ch';
+  return tg === t;
+}
+document.addEventListener('dragover', function (ev) {
+  var si = ev.target.closest && ev.target.closest('.si[data-sk], .sh[data-g]');
+  if (!si || !DRAG) return;
+  if (!dropOk(si.getAttribute('data-g'))) return;
+  ev.preventDefault();
+  document.querySelectorAll('.si.dover').forEach(function (e) {
+    e.classList.remove('dover');
+  });
+  if (si.classList.contains('si')) si.classList.add('dover');
+});
+document.addEventListener('drop', function (ev) {
+  var si = ev.target.closest && ev.target.closest('.si[data-sk], .sh[data-g]');
+  if (!si || !DRAG) return;
+  var tg = si.getAttribute('data-g');
+  if (!dropOk(tg)) return;
+  ev.preventDefault();
+  var k = DRAG.k,
+    from = DRAG.g,
+    before = si.getAttribute('data-sk');
+  DRAG = null;
+  /* 다른 묶음이면 먼저 그리로 옮기고 */
+  if (from !== tg) {
+    if (tg === 'fav') toggleFav(k);
+    else if (tg[0] === 's') moveTo(k, tg);
+    else moveTo(k, null);
+  }
+  /* 그 묶음 안에서 놓은 자리로 (놓은 항목 앞) */
+  var L = (GK[tg] || []).filter(function (x) {
+    return x !== k;
+  });
+  var at = before && before !== k ? L.indexOf(before) : -1;
+  L.splice(at < 0 ? L.length : at, 0, k);
+  setOrder(tg, L);
+  render();
+});
+
 /* 휴대폰: 메시지를 길게 누르면 아래 메뉴 */
 var LP = { t: null, x: 0, y: 0, fired: 0 };
 document.addEventListener(
   'touchstart',
   function (ev) {
+    /* 왼쪽 목록 항목을 길게 누르면 그 채널·DM 메뉴 */
+    var si = ev.target.closest && ev.target.closest('.si[data-sk]');
+    if (si && ev.touches.length === 1 && !ev.target.closest('.mv, .sim')) {
+      LP.x = ev.touches[0].clientX;
+      LP.y = ev.touches[0].clientY;
+      clearTimeout(LP.t);
+      LP.t = setTimeout(function () {
+        LP.fired = Date.now();
+        if (navigator.vibrate) navigator.vibrate(10);
+        openSim(si);
+      }, 450);
+      return;
+    }
     var m = ev.target.closest && ev.target.closest('.m[data-id]');
     if (!m || ev.touches.length > 1 || ev.target.closest('button, a, textarea, input') || m.querySelector('#eta'))
       return;

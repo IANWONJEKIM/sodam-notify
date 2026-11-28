@@ -42,14 +42,15 @@ service cloud.firestore {
           || request.resource.data.get('pinBy', null) in [null, request.auth.uid]);
     }
 
-    // 프로필 칸: 정해진 칸만, 글자 수 제한 (표시 이름·직책·연락처·상태·접속·설정)
+    // 프로필 칸: 정해진 칸만, 글자 수 제한 (표시 이름·직책·연락처·상태·접속·설정·내 사이드바 정리)
     function strMax(d, k, n) { return !(k in d) || (d[k] is string && d[k].size() <= n); }
     function profileOk(d) {
-      return d.keys().hasOnly(['email', 'name', 'photo', 'seen', 'chInit', 'dname', 'title', 'phone', 'st', 'on', 'prefs'])
+      return d.keys().hasOnly(['email', 'name', 'photo', 'seen', 'chInit', 'dname', 'title', 'phone', 'st', 'on', 'prefs', 'side'])
         && strMax(d, 'dname', 20) && strMax(d, 'title', 20) && strMax(d, 'phone', 20)
         && (!('st' in d) || d.st == null || (d.st is map && d.st.keys().hasOnly(['e', 't', 'until'])
           && strMax(d.st, 't', 40) && strMax(d.st, 'e', 16)))
-        && (!('prefs' in d) || d.prefs is map);
+        && (!('prefs' in d) || d.prefs is map)
+        && (!('side' in d) || d.side is map);
     }
 
     // 프로필: 본인 것만 쓰기

@@ -6,6 +6,8 @@ import { menuItems } from '../ui/messages.js';
 import { fmt } from '../ui/common.js';
 import { pickerHTML, gridHTML } from './emoji.js';
 import { stSheetHTML, meMenuHTML } from './profile.js';
+import { itemMenuHTML, secMenuHTML, secNewHTML } from './sidemenu.js';
+import { qsHTML, qsListHTML } from '../search.js';
 
 function ovEl() {
   var o = document.getElementById('ov');
@@ -29,10 +31,24 @@ function renderOverlay() {
   }
   /* 상태 창: 적던 문구가 지워지지 않게, 떠 있으면 다시 그리지 않아요 (버튼을 누를 때만 새로) */
   if (S.stp && !S.stp.redraw && o.querySelector('#st-t')) return;
+  /* 섹션 이름 적는 중이면 그대로 */
+  if ((S.secnew && o.querySelector('#sec-new')) || (S.secm && !S.secm_redraw && o.querySelector('#sec-name'))) return;
+  S.secm_redraw = false;
   if (S.stp) S.stp.redraw = false;
+  /* 빠른 이동: 떠 있으면 목록만 바꿔요 */
+  if (S.qs) {
+    var ql = o.querySelector('#qs-l');
+    o.className = 'ov on';
+    if (ql && o.querySelector('#qs-q')) ql.innerHTML = qsListHTML();
+    else o.innerHTML = qsHTML();
+    return;
+  }
   if (S.fwd) h = fwdHTML();
   else if (S.stp) h = stSheetHTML();
   else if (S.mem) h = meMenuHTML();
+  else if (S.secnew) h = secNewHTML();
+  else if (S.secm) h = secMenuHTML();
+  else if (S.sim) h = itemMenuHTML();
   else if (S.sheet) h = sheetHTML();
   o.className = h ? 'ov on' + (S.fwd ? ' fw' : '') : 'ov';
   /* 전달 창이 이미 떠 있으면 입력칸은 그대로 두고 목록만 바꿔요 (한글 입력이 끊기지 않게) */

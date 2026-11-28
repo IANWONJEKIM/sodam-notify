@@ -9,7 +9,16 @@ import { railHTML, botHTML, isTool, toolHTML } from '../ui/tabs.js';
 import { renderOverlay } from '../ui/overlay.js';
 import { profHTML } from './profile.js';
 import { applyPrefs } from '../people.js';
+import { isMuted } from '../side.js';
 
+/* PC 맨 위 가운데 검색창 (휴대폰은 홈 위쪽 🔍) */
+function topHTML() {
+  return (
+    '<header class="gtop"><button class="gsq" data-act="search"><span>🔍</span>소담상회 검색<kbd>' +
+    (/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K') +
+    '</kbd></button></header>'
+  );
+}
 function render() {
   if (!S.u || !S.me) return;
   applyPrefs();
@@ -20,7 +29,7 @@ function render() {
   if (isTool()) {
     app.innerHTML =
       '<div class="shell tool" data-pane="tool">' +
-      (narrow() ? '' : railHTML()) +
+      (narrow() ? '' : topHTML() + railHTML()) +
       '<main class="main">' +
       toolHTML(S.tab) +
       (narrow() ? botHTML() : '') +
@@ -36,7 +45,7 @@ function render() {
     '" data-pane="' +
     (narrow() ? S.pane : 'conv') +
     '">' +
-    (narrow() ? '' : railHTML()) +
+    (narrow() ? '' : topHTML() + railHTML()) +
     '<aside class="side">' +
     side +
     '</aside><main class="main">' +
@@ -50,10 +59,11 @@ function render() {
   renderOverlay();
   var n = 0;
   S.channels.forEach(function (c) {
-    if (vis(c) && joined(c)) n += UC['c_' + c.id] && unread('c_' + c.id, c) ? UC['c_' + c.id].n : 0;
+    if (vis(c) && joined(c) && !isMuted('c_' + c.id))
+      n += UC['c_' + c.id] && unread('c_' + c.id, c) ? UC['c_' + c.id].n : 0;
   });
   S.dms.forEach(function (d) {
-    n += UC['d_' + d.id] && unread('d_' + d.id, d) ? UC['d_' + d.id].n : 0;
+    if (!isMuted('d_' + d.id)) n += UC['d_' + d.id] && unread('d_' + d.id, d) ? UC['d_' + d.id].n : 0;
   });
   document.title = (n ? '(' + (n > 99 ? '99+' : n) + ') ' : '') + '소담상회';
 }
@@ -79,6 +89,7 @@ var CK = [
   'cf-end',
   'br-q',
   'fw-note',
+  'sq',
   'pf-dname',
   'pf-title',
   'pf-phone',

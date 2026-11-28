@@ -197,12 +197,18 @@ function fwdHTML(f) {
 }
 function listHTML(L, rid) {
   var h = '',
-    pd = '';
+    pd = '',
+    nl = !rid && S.divAt;
   L.forEach(function (x, i) {
     var dk = dayKey(x.at);
     if (dk !== pd) {
       h += '<div class="day">' + dayLabel(x.at) + '</div>';
       pd = dk;
+    }
+    /* 마지막으로 읽은 뒤 처음 온 남의 메시지 앞에 '새 메시지' 줄 */
+    if (nl && x.uid !== S.u.uid && ms(x.at) > S.divAt) {
+      h += '<div class="newline" id="newline"><span>새 메시지</span></div>';
+      nl = false;
     }
     h += msgHTML(x, i && dayKey(L[i - 1].at) === dk ? L[i - 1] : null, rid);
   });
@@ -234,7 +240,14 @@ function renderMsgs() {
   var oh = el.scrollHeight,
     ot = el.scrollTop;
   el.innerHTML = h;
-  if (near) {
+  var nlEl = document.getElementById('newline');
+  if (S.divScroll && nlEl && S.msgs.length) {
+    /* 처음 열 때 안 읽은 곳부터 보여요 */
+    S.divScroll = false;
+    S.atBottom = false;
+    nlEl.scrollIntoView({ block: 'start' });
+    el.scrollTop -= 8;
+  } else if (near) {
     el.scrollTop = el.scrollHeight;
     S.atBottom = false;
   } else if (S.keepTop) {
@@ -242,7 +255,25 @@ function renderMsgs() {
     S.keepTop = false;
   }
   doJump(el, false);
+  jumpBtn();
   if (S.thread) renderThread();
+}
+/* '안 읽은 메시지 ↑' 버튼: 구분선이 화면 위로 지나가 있으면 보여요 */
+function jumpBtn() {
+  var el = document.getElementById('msgs'),
+    nlEl = document.getElementById('newline'),
+    b = document.getElementById('jumpnew');
+  if (!el) return;
+  var show = nlEl && nlEl.offsetTop < el.scrollTop;
+  if (!b && show) {
+    b = document.createElement('button');
+    b.id = 'jumpnew';
+    b.className = 'jumpnew';
+    b.setAttribute('data-act', 'jumpnew');
+    b.textContent = '↑ 안 읽은 메시지';
+    el.parentNode.insertBefore(b, el);
+  }
+  if (b) b.hidden = !show;
 }
 /* 링크·활동·고정에서 온 메시지로 스크롤하고 잠깐 밝게 */
 function doJump(el, inThread) {
@@ -289,4 +320,4 @@ function renderThread() {
   doJump(el, true);
 }
 
-export { msgHTML, menuItems, listHTML, threadHTML, renderMsgs, renderThread };
+export { msgHTML, menuItems, listHTML, threadHTML, renderMsgs, renderThread, jumpBtn };
