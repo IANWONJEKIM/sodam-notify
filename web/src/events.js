@@ -161,9 +161,9 @@ document.addEventListener('keydown', function (ev) {
   }
   if (
     ev.key === 'Escape' &&
-    (S.sheet || S.fwd || S.menu || S.ep || S.stp || S.mem || S.sim || S.secm || S.secnew || S.qs)
+    (S.sheet || S.fwd || S.menu || S.ep || S.stp || S.mem || S.sim || S.secm || S.secnew || S.qs || S.delc)
   ) {
-    S.sheet = S.fwd = S.menu = S.ep = S.stp = S.mem = S.sim = S.secm = S.secnew = S.qs = null;
+    S.sheet = S.fwd = S.menu = S.ep = S.stp = S.mem = S.sim = S.secm = S.secnew = S.qs = S.delc = null;
     renderOverlay();
     renderMsgs();
     renderThread();
@@ -439,19 +439,20 @@ document.addEventListener('click', function (ev) {
     if (et) saveEdit(id, rid, et.value);
     return;
   }
+  /* 지우기: 메뉴를 닫고 '정말 삭제할까요?' 확인 창을 띄워요 */
   if (a === 'del') {
-    if (S.delAsk !== (rid || id)) {
-      S.delAsk = rid || id;
-      toast('한 번 더 누르면 지워져요');
-      setTimeout(function () {
-        S.delAsk = null;
-      }, 3000);
-      return;
-    }
-    S.delAsk = null;
-    delMsg(id, rid);
-    S.sheet = null;
+    S.sheet = S.menu = null;
+    S.delc = { id: id, rid: rid || '' };
+    renderMsgs();
+    renderThread();
     renderOverlay();
+    return;
+  }
+  if (a === 'delok') {
+    var dc = S.delc;
+    S.delc = null;
+    renderOverlay();
+    if (dc) delMsg(dc.id, dc.rid);
     return;
   }
   adminAct(a, b);
@@ -637,7 +638,7 @@ function msgActs(a, b, id, rid, v) {
     return true;
   }
   if (a === 'ovclose') {
-    S.sheet = S.fwd = S.ep = S.stp = S.mem = S.sim = S.secm = S.secnew = S.qs = null;
+    S.sheet = S.fwd = S.ep = S.stp = S.mem = S.sim = S.secm = S.secnew = S.qs = S.delc = null;
     renderOverlay();
     return true;
   }

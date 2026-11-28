@@ -43,7 +43,8 @@ function renderOverlay() {
     else o.innerHTML = qsHTML();
     return;
   }
-  if (S.fwd) h = fwdHTML();
+  if (S.delc) h = delHTML();
+  else if (S.fwd) h = fwdHTML();
   else if (S.stp) h = stSheetHTML();
   else if (S.mem) h = meMenuHTML();
   else if (S.secnew) h = secNewHTML();
@@ -134,6 +135,19 @@ function fwdHTML() {
     '<div class="row"><span class="sp"></span><button class="btn ghost" data-act="ovclose">취소</button><button class="btn" data-act="fwgo"' +
     (f.to ? '' : ' disabled') +
     '>전달하기</button></div></div>'
+  );
+}
+
+/* 지우기 확인 창 */
+function delHTML() {
+  var d = S.delc,
+    x = findMsg(d.id, d.rid);
+  return (
+    '<div class="ovbg" data-act="ovclose"></div><div class="dlg delc" role="alertdialog" aria-label="메시지 삭제"><h3>정말 삭제할까요?</h3>' +
+    (x && x.text ? '<div class="fwdq"><div class="tx">' + fmt(String(x.text).slice(0, 200)) + '</div></div>' : '') +
+    '<p class="small muted" style="margin:0">삭제하면 되돌릴 수 없어요.' +
+    (!d.rid && x && x.rc > 0 ? ' 답글이 있어서 "삭제된 메시지예요"로 남아요.' : '') +
+    '</p><div class="row"><span class="sp"></span><button class="btn ghost" data-act="ovclose">취소</button><button class="btn danger" data-act="delok">삭제</button></div></div>'
   );
 }
 

@@ -14,9 +14,10 @@ function msgHTML(x, prev, rid, root) {
     mine = x.uid === S.u.uid,
     men = (x.men || []).indexOf(S.u.uid) >= 0 && !mine,
     ids = ' data-id="' + esc(rid ? S.thread : x.id) + '"' + (rid ? ' data-rid="' + esc(x.id) + '"' : ''),
-    key = rid || x.id,
+    /* 답글 목록에서 rid 는 true(답글 표시)라서, 열림 상태 비교는 늘 이 글의 id로 해요 */
+    key = x.id,
     pin = !rid && x.pinAt && !x.del,
-    sv = !x.del && S.view && (S.view.k === 'c' || S.view.k === 'd') && isSaved(rid ? S.thread : x.id, rid),
+    sv = !x.del && S.view && (S.view.k === 'c' || S.view.k === 'd') && isSaved(rid ? S.thread : x.id, rid ? x.id : ''),
     hl = S.jump && (rid ? S.jump.rid === x.id : !S.jump.rid && S.jump.mid === x.id);
   if (pin || sv) cont = false;
   var h =
@@ -54,7 +55,7 @@ function msgHTML(x, prev, rid, root) {
       '<time>' +
       hm(x.at) +
       '</time></div>';
-  if (S.edit === (rid || x.id))
+  if (S.edit === x.id)
     h +=
       '<div class="cbox" style="margin:4px 0"><textarea id="eta" rows="2">' +
       esc(x.text) +
@@ -145,7 +146,7 @@ function msgHTML(x, prev, rid, root) {
       ids +
       ' title="더 보기" aria-label="더 보기">⋯</button></div>';
   if (S.menu === key && !narrow()) h += '<div class="mmenu" role="menu">' + menuItems(x, rid, ids) + '</div>';
-  if (S.emo === (rid || x.id))
+  if (S.emo === x.id)
     h +=
       '<div class="emo">' +
       EMO.map(function (e) {
