@@ -940,3 +940,74 @@ button {
     font-size: 16px !important;
   }
 }
+/* 그룹 DM 사진 · 채널 찾아보기 · 미리 보기 */
+.avg {
+  display: inline-flex;
+  flex: none;
+}
+.avg .av + .av {
+  margin-left: -9px;
+  box-shadow: 0 0 0 2px var(--side);
+}
+.si .gn {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-left: -4px;
+  flex: none;
+}
+.top .avg .av + .av {
+  box-shadow: 0 0 0 2px var(--bg, #fff);
+}
+.si.pv {
+  font-style: italic;
+}
+.plist .ck {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.plist button[aria-pressed='true'] {
+  background: var(--accent-soft);
+}
+.plist button[aria-pressed='true'] .ck {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.srow .who.lk {
+  border: 0;
+  background: none;
+  text-align: left;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.srow .who.lk:hover b {
+  text-decoration: underline;
+}
+.joinbar {
+  border-top: 1px solid var(--line);
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 16px;
+  text-align: center;
+}
+.joinbar p {
+  margin: 0;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

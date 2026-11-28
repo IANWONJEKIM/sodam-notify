@@ -1,16 +1,18 @@
 /* 입력 · 클릭 */
 import { auth, FV } from './firebase.js';
 import { toast, errMsg } from './util.js';
-import { off, isAdmin, narrow, S } from './state.js';
+import { off, isAdmin, chan, narrow, S } from './state.js';
+import { cjoin, cleave } from './chmem.js';
+import { browseList } from './ui/layout.js';
 import { login } from './auth.js';
-import { stopConv, openConv, listen, markRead, openThread, closeThread, openDM } from './conv.js';
+import { stopConv, openConv, listen, markRead, openThread, closeThread, openDM, openGroup } from './conv.js';
 import { tk, tkRef, openTask, tkUp, tkAdd, tkSt } from './tasks.js';
 import { send, react, delMsg, saveEdit } from './messages.js';
 import { grow } from './ui/common.js';
 import { renderMsgs, renderThread } from './ui/messages.js';
 import { renderCmts } from './ui/board.js';
 import { render } from './ui/render.js';
-import { adminAct, openCset, csBack } from './admin.js';
+import { adminAct, openCset, csBack, csetSave } from './admin.js';
 import { mpUpdate, mpPick, MP } from './mention.js';
 
 function isComp(id) {
@@ -21,6 +23,12 @@ document.addEventListener('input', function (ev) {
   if (isComp(t.id)) {
     grow(t);
     mpUpdate(t);
+  }
+  /* 채널 찾아보기 검색: 목록만 다시 그려요 (입력칸은 그대로) */
+  if (t.id === 'br-q') {
+    S.bq = t.value;
+    var bl = document.getElementById('br-list');
+    if (bl) bl.innerHTML = browseList();
   }
 });
 document.addEventListener('change', function (ev) {
@@ -138,11 +146,24 @@ document.addEventListener('click', function (ev) {
   if (a === 'newdm') {
     stopConv();
     S.view = { k: 'newdm' };
+    S.nd = [];
     S.pane = 'conv';
     render();
     return;
   }
-  if (a === 'dmto') return openDM(v);
+  if (a === 'dmpick') {
+    var nd = S.nd || (S.nd = []),
+      ni = nd.indexOf(v);
+    ni >= 0 ? nd.splice(ni, 1) : nd.push(v);
+    render();
+    return;
+  }
+  if (a === 'dmgo') {
+    var pick = (S.nd || []).slice();
+    if (!pick.length) return;
+    S.nd = [];
+    return pick.length === 1 ? openDM(pick[0]) : openGroup(pick);
+  }
   if (a === 'admin') {
     stopConv();
     S.view = { k: 'admin' };
@@ -168,10 +189,42 @@ document.addEventListener('click', function (ev) {
   }
   if (a === 'cset') {
     if (id) return openCset(id);
-    if (isAdmin()) return openCset('', v);
+    if (isAdmin() || v === 'pub') return openCset('', v);
     return;
   }
   if (a === 'csback') return csBack();
+  if (a === 'cfsave') return csetSave();
+  if (a === 'browse') {
+    stopConv();
+    S.view = { k: 'browse' };
+    S.bq = '';
+    S.pane = 'conv';
+    render();
+    setTimeout(function () {
+      var q = document.getElementById('br-q');
+      if (q && !narrow()) q.focus();
+    }, 30);
+    return;
+  }
+  if (a === 'cinfo') {
+    stopConv();
+    S.cleave = null;
+    S.view = { k: 'cinfo', id: id };
+    S.pane = 'conv';
+    render();
+    return;
+  }
+  if (a === 'cjoin') return cjoin(id);
+  if (a === 'cleave') {
+    var lc = chan(id);
+    /* 비공개 채널은 다시 못 들어오니 한 번 더 확인 */
+    if (lc && lc.priv && S.cleave !== id) {
+      S.cleave = id;
+      render();
+      return;
+    }
+    return cleave(id);
+  }
   if (a === 'showdone') {
     S.showDone = !S.showDone;
     render();

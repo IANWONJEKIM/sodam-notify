@@ -1,8 +1,8 @@
 /* 관리 · 새 DM · 채널 설정 */
 import { db, FV } from './firebase.js';
 import { esc, toast, errMsg, today, OWNER, TEAMS } from './util.js';
-import { isAdmin, userOfEmail, chan, vis, sname, narrow, S } from './state.js';
-import { stopConv, openConv } from './conv.js';
+import { isAdmin, nameOf, userOfEmail, chan, vis, joined, sname, narrow, S } from './state.js';
+import { stopConv, openConv, GMAX } from './conv.js';
 import { av, pav } from './ui/common.js';
 import { render } from './ui/render.js';
 
@@ -90,9 +90,11 @@ function adminHTML() {
           esc(c.name) +
           (c.kind === 'proj' && c.done ? ' <span class="pill">완료</span>' : '') +
           '</b><span class="small muted">' +
-          (c.priv
-            ? '멤버 ' + (c.mem || []).length + '명' + (vis(c) ? '' : ' · 나는 멤버 아님') + (c.topic ? ' · ' : '')
-            : '') +
+          '멤버 ' +
+          (c.mem || []).length +
+          '명' +
+          (joined(c) ? '' : ' · 나는 멤버 아님') +
+          (c.topic ? ' · ' : '') +
           esc(c.topic || '') +
           '</span></div><button class="btn sm ghost" data-act="cset" data-id="' +
           esc(c.id) +
@@ -115,16 +117,36 @@ function newdmHTML() {
     .sort(function (a, b) {
       return String(S.staff[a].name).localeCompare(String(S.staff[b].name), 'ko');
     });
+  var sel = S.nd || (S.nd = []),
+    others = sel.filter(function (u) {
+      return u !== S.u.uid;
+    }),
+    full = others.length >= GMAX - 1;
+  var go =
+    '<div class="row"><span class="small muted">' +
+    (sel.length
+      ? sel.map(nameOf).map(esc).join(', ') + (others.length >= 2 ? ' · 그룹 DM ' + (others.length + 1) + '명' : '')
+      : '여러 명을 고르면 그룹 DM이 돼요 (나 포함 ' + GMAX + '명까지)') +
+    '</span><span class="sp"></span><button class="btn" data-act="dmgo"' +
+    (sel.length ? '' : ' disabled') +
+    '>대화하기</button></div>';
   return (
-    '<div class="page"><div class="card"><h3>누구와 대화할까요?</h3><div class="plist">' +
+    '<div class="page"><div class="card"><h3>누구와 대화할까요?</h3>' +
+    go +
+    '<div class="plist">' +
     L.map(function (e) {
-      var uid = userOfEmail(e);
+      var uid = userOfEmail(e),
+        on = uid && sel.indexOf(uid) >= 0;
       return (
-        '<button data-act="dmto" data-v="' +
+        '<button data-act="dmpick" data-v="' +
         esc(uid) +
+        '" aria-pressed="' +
+        !!on +
         '"' +
-        (uid ? '' : ' disabled') +
-        '>' +
+        (uid && (on || !full || uid === S.u.uid) ? '' : ' disabled') +
+        '><span class="ck" aria-hidden="true">' +
+        (on ? '✓' : '') +
+        '</span>' +
         (uid
           ? av(uid)
           : '<span class="av" style="background:#999">' + esc(String(S.staff[e].name || '?').slice(0, 1)) + '</span>') +
@@ -331,7 +353,7 @@ function keepCf() {
 }
 function csetHTML() {
   var f = S.cf,
-    ed = isAdmin(),
+    ed = isAdmin() || !f.id,
     proj = f.kind === 'proj',
     dis = ed ? '' : ' disabled';
   var title = f.id
@@ -387,7 +409,10 @@ function csetHTML() {
           dis +
           '>완료</button></div></div>'
         : '');
-  if (!proj && !f.id && ed)
+  if (!proj && !f.id && !isAdmin())
+    h +=
+      '<p class="small muted" style="margin:0"># 공개 채널 · 모든 직원이 찾아서 들어올 수 있어요. 비공개 채널은 관리자에게 부탁해 주세요.</p>';
+  else if (!proj && !f.id && ed)
     h +=
       '<label class="row small"><input type="checkbox" data-act="cfpriv"' +
       (f.priv ? ' checked' : '') +
@@ -454,10 +479,17 @@ function csetHTML() {
 }
 function csetSave() {
   keepCf();
-  var f = S.cf,
-    n = String(f.name || '')
-      .trim()
-      .replace(/^#/, '');
+  var f = S.cf;
+  if (!f) return;
+  /* 일반 직원은 새 공개 채널만 만들어요 */
+  if (!isAdmin()) {
+    if (f.id) return;
+    f.priv = false;
+    f.kind = '';
+  }
+  var n = String(f.name || '')
+    .trim()
+    .replace(/^#/, '');
   if (!n) return toast('이름을 적어 주세요.');
   if (
     S.channels.some(function (c) {
@@ -484,6 +516,7 @@ function csetSave() {
   if (!f.id) {
     d.priv = !!(f.priv || f.kind);
     if (f.kind) d.kind = f.kind;
+    if (!d.priv) d.mem = [S.email];
     if (d.priv && d.mem.indexOf(S.email) < 0) d.mem.push(S.email);
     d.ord = S.channels.length;
     d.by = S.u.uid;
@@ -528,7 +561,7 @@ function csBack() {
     S.view = { k: 'admin' };
     return render();
   }
-  var f0 = S.channels.filter(vis)[0];
+  var f0 = S.channels.filter(joined)[0];
   if (f0 && !narrow()) return openConv({ k: 'c', id: f0.id });
   S.view = null;
   S.pane = 'list';

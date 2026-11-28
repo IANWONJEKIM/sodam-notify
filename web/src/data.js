@@ -1,11 +1,17 @@
 /* 데이터 구독 */
 import { auth, db, FV } from './firebase.js';
 import { ms, toast, errMsg } from './util.js';
-import { isAdmin, chan, vis, soon, narrow, S, UN } from './state.js';
+import { isAdmin, chan, vis, joined, soon, narrow, S, UN } from './state.js';
 import { stopConv, openConv } from './conv.js';
+import { autoJoin } from './chmem.js';
 import { render } from './ui/render.js';
 
 function start() {
+  /* 계정을 바꿔 들어와도 앞 사람 목록이 남지 않게 */
+  S.channels = [];
+  S.dms = [];
+  S.users = {};
+  S.loaded = {};
   UN.push(
     db.collection('staff').onSnapshot(function (s) {
       S.staff = {};
@@ -23,6 +29,7 @@ function start() {
       s.forEach(function (d) {
         S.users[d.id] = d.data();
       });
+      autoJoin();
       soon();
     }),
   );
@@ -82,9 +89,10 @@ function start() {
         toast('이 대화방을 더 볼 수 없어요');
       }
     }
+    autoJoin();
     if (!S.view && !narrow()) {
       var f0 = S.channels.filter(function (c) {
-        return vis(c) && c.kind !== 'proj';
+        return joined(c) && c.kind !== 'proj';
       })[0];
       if (f0) openConv({ k: 'c', id: f0.id });
     }

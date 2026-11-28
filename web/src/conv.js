@@ -157,4 +157,32 @@ function openDM(uid) {
     });
 }
 
-export { stopConv, openConv, listen, markRead, openThread, closeThread, openDM };
+/* 그룹 DM (나 포함 3~8명) · 같은 사람들끼리 방이 있으면 그 방을 열어요 */
+var GMAX = 8;
+function openGroup(uids) {
+  var m = uids
+    .filter(function (u, i) {
+      return u && u !== S.u.uid && uids.indexOf(u) === i;
+    })
+    .concat([S.u.uid])
+    .sort();
+  if (m.length <= 2) return openDM(m[0] === S.u.uid ? m[1] || S.u.uid : m[0]);
+  if (m.length > GMAX) return toast('그룹 DM은 나를 포함해 ' + GMAX + '명까지예요');
+  var key = m.join(',');
+  var old = S.dms.filter(function (d) {
+    return d.g && (d.m || []).slice().sort().join(',') === key;
+  })[0];
+  if (old) return openConv({ k: 'd', id: old.id });
+  var id = 'g_' + db.collection('dms').doc().id;
+  db.collection('dms')
+    .doc(id)
+    .set({ m: m, g: true, at: FV.serverTimestamp() })
+    .then(function () {
+      openConv({ k: 'd', id: id });
+    })
+    .catch(function (e) {
+      toast('그룹 DM을 만들지 못했어요 · ' + errMsg(e));
+    });
+}
+
+export { stopConv, openConv, listen, markRead, openThread, closeThread, openDM, openGroup, GMAX };

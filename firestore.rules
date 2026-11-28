@@ -4,6 +4,9 @@ rules_version = '2';
 // - DM은 대화에 들어 있는 두 사람만 읽고 쓸 수 있어요 (관리자도 못 봐요).
 // - 안 읽음 기록(users/{uid}/reads)은 본인만 봐요.
 // - 비공개 채널·프로젝트(priv: true)는 멤버(mem: Gmail 목록)만 메시지·할 일을 보고 써요. 관리자는 이름·멤버(설정)만 관리해요.
+// - 공개 채널의 mem은 '들어간 사람' 목록이에요. 직원은 자기 자신만 넣고 빼요. 비공개 채널은 스스로 나가기만 돼요.
+// - 공개 채널은 직원 누구나 만들어요. 비공개 채널·프로젝트는 관리자만 만들어요.
+// - 그룹 DM(3~8명)도 대화에 든 사람만 읽고 써요.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signed() { return request.auth != null && request.auth.token.email_verified == true; }
@@ -39,8 +42,22 @@ service cloud.firestore {
     match /channels/{cid} {
       // 목록(list) 검사에서 .get('priv', false) 는 조건 없는 전체 요청까지 통과시켜요 → priv == false 로 비교해요 (테스트로 확인)
       allow read: if isStaff() && (isAdmin() || resource.data.priv == false || em() in resource.data.mem);
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (isStaff() && (resource.data.get('priv', false) == false || em() in resource.data.mem) && onlyKeys(['last', 'lastAt']));
+      function memOld() { return resource.data.get('mem', []).toSet(); }
+      function memNew() { return request.resource.data.get('mem', []).toSet(); }
+      function selfOnly() { return [em()].toSet(); }
+      // 들어가기: 공개 채널에 나만 더하기 · 나가기: 어느 채널이든 나만 빼기
+      function joinOrLeave() {
+        return isStaff() && onlyKeys(['mem'])
+          && ((resource.data.get('priv', false) == false && memNew() == memOld().union(selfOnly()))
+            || memNew() == memOld().difference(selfOnly()));
+      }
+      allow create: if isAdmin() || (isStaff()
+        && request.resource.data.priv == false
+        && !('kind' in request.resource.data)
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.mem == [em()]);
+      allow delete: if isAdmin();
+      allow update: if isAdmin() || joinOrLeave() || (isStaff() && (resource.data.get('priv', false) == false || em() in resource.data.mem) && onlyKeys(['last', 'lastAt']));
       match /msgs/{mid} {
         allow read: if chOk(cid);
         allow create: if chOk(cid) && mine();
@@ -68,16 +85,22 @@ service cloud.firestore {
     }
 
     // DM: 대화방 id = 두 사람 uid를 작은 순서로 '_'로 이은 것. 두 사람만 읽고 써요
+    // 그룹 DM: id = 'g_' + 임의 글자, g: true, 멤버 3~8명(겹치지 않게). 멤버는 나중에 못 바꿔요
     match /dms/{did} {
       function dmMembers() { return get(/databases/$(database)/documents/dms/$(did)).data.m; }
       function inDm() { return isStaff() && request.auth.uid in dmMembers(); }
       allow get: if isStaff() && (resource == null || request.auth.uid in resource.data.m);
       allow list: if isStaff() && request.auth.uid in resource.data.m;
-      allow create: if isStaff()
-        && request.resource.data.m.size() == 2
-        && request.auth.uid in request.resource.data.m
-        && request.resource.data.m[0] < request.resource.data.m[1]
-        && did == request.resource.data.m[0] + '_' + request.resource.data.m[1];
+      allow create: if isStaff() && request.auth.uid in request.resource.data.m && (
+        (request.resource.data.m.size() == 2
+          && request.resource.data.m[0] < request.resource.data.m[1]
+          && did == request.resource.data.m[0] + '_' + request.resource.data.m[1])
+        || (request.resource.data.get('g', false) == true
+          && request.resource.data.keys().hasOnly(['m', 'g', 'at'])
+          && request.resource.data.m.size() >= 3
+          && request.resource.data.m.size() <= 8
+          && request.resource.data.m.toSet().size() == request.resource.data.m.size()
+          && did.matches('g_[A-Za-z0-9]+')));
       allow update: if isStaff() && request.auth.uid in resource.data.m && onlyKeys(['last', 'lastAt']);
       match /msgs/{mid} {
         allow read: if inDm();

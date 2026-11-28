@@ -37,6 +37,19 @@ function pav(e) {
     ? av(uid, 1)
     : '<span class="av sm" style="background:#8A938E">' + esc(String(sname(e)).slice(0, 1)) + '</span>';
 }
+/* 그룹 DM 사진: 두 사람 사진을 겹치고 인원수 */
+function gav(uids) {
+  return (
+    '<span class="avg">' +
+    av(uids[0], 1) +
+    av(uids[1], 1) +
+    '</span><span class="gn" aria-label="' +
+    (uids.length + 1) +
+    '명">' +
+    (uids.length + 1) +
+    '</span>'
+  );
+}
 function compHTML(id, ph) {
   return (
     '<div class="comp"><div class="mpop" id="' +
@@ -59,4 +72,4 @@ function grow(e) {
   if (b) b.disabled = !e.value.trim();
 }
 
-export { av, fmt, pav, compHTML, grow };
+export { av, fmt, pav, gav, compHTML, grow };

@@ -13,6 +13,8 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore';
 
 const OWNER = 'wonjea47@gmail.com';
@@ -114,13 +116,48 @@ describe('공개 채널', () => {
   it('관리자는 남의 메시지를 지울 수 있어요', async () => {
     await assertSucceeds(deleteDoc(doc(as(P.boss), 'channels', 'pub', 'msgs', 'm1')));
   });
-  it('직원은 채널의 마지막 메시지 표시만 바꾸고, 채널은 관리자만 만들어요', async () => {
+  it('직원은 채널의 마지막 메시지 표시만 바꾸고, 이름은 못 바꿔요', async () => {
     await assertSucceeds(
       updateDoc(doc(as(P.a), 'channels', 'pub'), { last: { text: '네', by: P.a.uid }, lastAt: serverTimestamp() }),
     );
     await assertFails(updateDoc(doc(as(P.a), 'channels', 'pub'), { name: '바꿈' }));
-    await assertFails(setDoc(doc(as(P.a), 'channels', 'x'), { name: '새', priv: false }));
     await assertSucceeds(setDoc(doc(as(P.boss), 'channels', 'x'), { name: '새', priv: false }));
+  });
+  it('직원도 공개 채널은 만들어요 (만든 사람 = 나, 멤버 = 나)', async () => {
+    const db = as(P.a);
+    const ok = { name: '새', priv: false, by: P.a.uid, mem: [P.a.email] };
+    await assertSucceeds(setDoc(doc(db, 'channels', 'x'), ok));
+    await assertFails(setDoc(doc(db, 'channels', 'y'), { name: '새', priv: false }));
+    await assertFails(setDoc(doc(db, 'channels', 'y'), { ...ok, by: P.b.uid }));
+    await assertFails(setDoc(doc(db, 'channels', 'y'), { ...ok, mem: [P.a.email, P.b.email] }));
+    await assertFails(setDoc(doc(db, 'channels', 'y'), { ...ok, priv: true }));
+    await assertFails(setDoc(doc(db, 'channels', 'y'), { ...ok, priv: true, kind: 'proj' }));
+    await assertFails(
+      setDoc(doc(as(P.stranger), 'channels', 'y'), { ...ok, by: P.stranger.uid, mem: [P.stranger.email] }),
+    );
+  });
+});
+
+describe('채널 들어가기 · 나가기', () => {
+  it('공개 채널에 나만 들어가고 나만 나가요', async () => {
+    const db = as(P.a);
+    await assertSucceeds(updateDoc(doc(db, 'channels', 'pub'), { mem: arrayUnion(P.a.email) }));
+    await assertFails(updateDoc(doc(db, 'channels', 'pub'), { mem: arrayUnion(P.b.email) }));
+    await assertSucceeds(updateDoc(doc(as(P.b), 'channels', 'pub'), { mem: arrayUnion(P.b.email) }));
+    await assertFails(updateDoc(doc(db, 'channels', 'pub'), { mem: arrayRemove(P.b.email) }));
+    await assertSucceeds(updateDoc(doc(db, 'channels', 'pub'), { mem: arrayRemove(P.a.email) }));
+  });
+  it('들어가면서 다른 것(이름 등)은 못 바꿔요', async () => {
+    await assertFails(updateDoc(doc(as(P.a), 'channels', 'pub'), { mem: arrayUnion(P.a.email), name: '바꿈' }));
+  });
+  it('비공개 채널은 스스로 못 들어가고, 멤버는 나가기만 돼요', async () => {
+    await assertFails(updateDoc(doc(as(P.b), 'channels', 'sec'), { mem: arrayUnion(P.b.email) }));
+    await assertFails(updateDoc(doc(as(P.b), 'channels', 'proj'), { mem: arrayRemove(P.a.email) }));
+    await assertSucceeds(updateDoc(doc(as(P.b), 'channels', 'proj'), { mem: arrayRemove(P.b.email) }));
+    await assertSucceeds(updateDoc(doc(as(P.a), 'channels', 'sec'), { mem: arrayRemove(P.a.email) }));
+  });
+  it('못 들어오게 한 직원은 들어가지 못해요', async () => {
+    await assertFails(updateDoc(doc(as(P.gone), 'channels', 'pub'), { mem: arrayUnion(P.gone.email) }));
   });
 });
 
@@ -180,5 +217,35 @@ describe('DM', () => {
     await assertFails(setDoc(doc(as(P.b), 'dms', 'uA_uB', 'msgs', 'm3'), { uid: P.a.uid, text: '사칭' }));
     await assertFails(deleteDoc(doc(as(P.b), 'dms', 'uA_uB', 'msgs', 'm1')));
     await assertSucceeds(deleteDoc(doc(as(P.a), 'dms', 'uA_uB', 'msgs', 'm1')));
+  });
+});
+
+describe('그룹 DM', () => {
+  const g = { m: ['uA', 'uB', 'uC'], g: true };
+  it('3~8명, 내가 들어 있고 g_ 로 시작하는 id면 만들어져요', async () => {
+    await assertSucceeds(setDoc(doc(as(P.a), 'dms', 'g_abc1'), g));
+    await assertFails(setDoc(doc(as(P.boss), 'dms', 'g_abc2'), g));
+    await assertFails(setDoc(doc(as(P.a), 'dms', 'uA_uB_uC'), g));
+    await assertFails(setDoc(doc(as(P.a), 'dms', 'g_abc3'), { m: ['uA', 'uB'], g: true }));
+    await assertFails(setDoc(doc(as(P.a), 'dms', 'g_abc4'), { m: ['uA', 'uB', 'uB'], g: true }));
+    await assertFails(
+      setDoc(doc(as(P.a), 'dms', 'g_abc5'), { m: ['uA', 'u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8'], g: true }),
+    );
+    await assertFails(setDoc(doc(as(P.a), 'dms', 'g_abc6'), { ...g, name: '덧붙인 칸' }));
+  });
+  it('멤버만 읽고 쓰고, 관리자·바깥 사람은 못 봐요', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'dms', 'g_x', 'msgs', 'm1'), { uid: 'uA', text: '셋이서' });
+      await setDoc(doc(db, 'dms', 'g_x'), g);
+    });
+    await assertSucceeds(getDocs(collection(as(P.c), 'dms', 'g_x', 'msgs')));
+    await assertSucceeds(setDoc(doc(as(P.c), 'dms', 'g_x', 'msgs', 'm2'), { uid: P.c.uid, text: '네' }));
+    await assertFails(getDocs(collection(as(P.boss), 'dms', 'g_x', 'msgs')));
+    await assertFails(getDoc(doc(as(P.owner), 'dms', 'g_x')));
+  });
+  it('멤버를 나중에 바꾸지 못해요', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), 'dms', 'g_x'), g));
+    await assertFails(updateDoc(doc(as(P.a), 'dms', 'g_x'), { m: ['uA', 'uB', 'uC', 'uD'] }));
   });
 });

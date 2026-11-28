@@ -1,5 +1,5 @@
 /* 전체 다시 그리기 · 쓰던 글 지키기 */
-import { vis, narrow, S } from '../state.js';
+import { vis, joined, narrow, S } from '../state.js';
 import { unread, UC } from '../unread.js';
 import { grow } from '../ui/common.js';
 import { threadHTML, renderMsgs } from '../ui/messages.js';
@@ -30,7 +30,7 @@ function render() {
   restoreComposer(keep);
   var n = 0;
   S.channels.forEach(function (c) {
-    if (vis(c)) n += UC['c_' + c.id] && unread('c_' + c.id, c) ? UC['c_' + c.id].n : 0;
+    if (vis(c) && joined(c)) n += UC['c_' + c.id] && unread('c_' + c.id, c) ? UC['c_' + c.id].n : 0;
   });
   S.dms.forEach(function (d) {
     n += UC['d_' + d.id] && unread('d_' + d.id, d) ? UC['d_' + d.id].n : 0;
@@ -57,6 +57,7 @@ var CK = [
   'cf-topic',
   'cf-start',
   'cf-end',
+  'br-q',
 ];
 function snapComposer() {
   var o = { __k: S.lastVk };

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite --mode emu",
     "dev:live": "vite",
-    "emu": "firebase emulators:start --project demo-sodam --import=.emu --export-on-exit",
+    "emu": "node -e \"require('fs').mkdirSync('.emu',{recursive:true})\" && firebase emulators:start --project demo-sodam --only auth,firestore,storage --import=.emu --export-on-exit",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint web/src tests",

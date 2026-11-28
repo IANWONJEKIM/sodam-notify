@@ -68,6 +68,25 @@ function dmOther(d) {
     })[0] || S.u.uid
   );
 }
+/* 나 말고 대화에 든 사람들 (1:1이면 한 명, 나에게 메모면 나) */
+function dmOthers(d) {
+  var o = (d.m || []).filter(function (x) {
+    return x !== S.u.uid;
+  });
+  return o.length ? o : [S.u.uid];
+}
+function dmName(d) {
+  return dmOthers(d)
+    .map(nameOf)
+    .sort(function (a, b) {
+      return String(a).localeCompare(String(b), 'ko');
+    })
+    .join(', ');
+}
+/* 내가 들어간 채널 (공개 채널도 mem = 들어간 사람) */
+function joined(c) {
+  return !!c && (c.mem || []).indexOf(S.email) >= 0;
+}
 function chan(id) {
   for (var i = 0; i < S.channels.length; i++) if (S.channels[i].id === id) return S.channels[i];
   return null;
@@ -107,6 +126,9 @@ export {
   convRef,
   dmId,
   dmOther,
+  dmOthers,
+  dmName,
+  joined,
   chan,
   dm,
   vis,
